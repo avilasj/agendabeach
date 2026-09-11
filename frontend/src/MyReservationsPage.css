@@ -132,3 +132,14 @@
   .reservations-filter { min-height: 40px; padding: 0 13px; font-size: 13px; }
   .reservations-empty { padding: 42px 20px 46px; border-radius: 17px; }
 }
+
+.reservations-alert {
+  margin-bottom: 18px;
+  padding: 14px 18px;
+  color: #8c2f2f;
+  border: 1px solid #f0c4c4;
+  border-radius: 14px;
+  background: #fdf1f1;
+  font-size: 13.5px;
+  line-height: 1.55;
+}

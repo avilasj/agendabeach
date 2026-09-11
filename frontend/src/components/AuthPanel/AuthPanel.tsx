@@ -3,12 +3,13 @@ import { Anchor, Box, SegmentedControl, Text, Title } from '@mantine/core'
 import { LoginForm } from '../LoginForm'
 import { Logo } from '../Logo'
 import { RegisterForm } from '../RegisterForm'
+import type { SessionUser } from '../../session'
 import './AuthPanel.css'
 
 type AuthMode = 'login' | 'register'
 
 type AuthPanelProps = {
-  onLogin: () => void
+  onLogin: (user: SessionUser) => void
 }
 
 export function AuthPanel({ onLogin }: AuthPanelProps) {

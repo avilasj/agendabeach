@@ -1,0 +1,298 @@
+.admin-page {
+  min-height: 100svh;
+  color: #526472;
+  background: #f5f7fa;
+}
+
+.admin-main {
+  width: min(100%, 1540px);
+  margin: 0 auto;
+  padding: 46px clamp(28px, 4.8vw, 78px) 80px;
+}
+
+.admin-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.admin-refresh {
+  flex-shrink: 0;
+  min-height: 48px;
+  margin-bottom: 34px;
+  padding: 0 22px;
+  color: #0e507f;
+  border: 1px solid #cfdde6;
+  border-radius: 11px;
+  background: white;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.admin-refresh:hover:not(:disabled) { border-color: #80aecb; background: #f6f9fb; }
+.admin-refresh:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ------------------------------------------------------------ acesso negado */
+
+.admin-denied {
+  max-width: 620px;
+  margin: 60px auto;
+  padding: 42px;
+  text-align: center;
+  border: 1px solid #e0e5e9;
+  border-radius: 22px;
+  background: white;
+  box-shadow: 0 14px 34px rgba(25, 67, 96, 0.08);
+}
+
+.admin-denied span { color: #c94a4a; font-size: 11px; font-weight: 800; letter-spacing: 1.6px; }
+.admin-denied h1 { margin: 12px 0 14px; color: #0e507f; font-size: 26px; line-height: 1.25; }
+.admin-denied p { margin: 0 0 26px; font-size: 14.5px; line-height: 1.65; }
+
+.admin-denied button {
+  min-height: 48px;
+  padding: 0 24px;
+  color: #174b70;
+  border: 0;
+  border-radius: 11px;
+  background: #edbd4e;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+/* ----------------------------------------------------------------- avisos */
+
+.admin-banner {
+  margin-bottom: 18px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+
+.admin-banner--ok { color: #19603f; border: 1px solid #b9e2cc; background: #eefaf3; }
+.admin-banner--error { color: #8c2f2f; border: 1px solid #f0c4c4; background: #fdf1f1; }
+.admin-banner--warn { color: #7a5512; border: 1px solid #f0dfb2; background: #fdf6e6; }
+
+/* ------------------------------------------------------------------ stats */
+
+.admin-stats {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 26px;
+}
+
+.admin-stat {
+  padding: 18px 20px;
+  border: 1px solid #e0e5e9;
+  border-radius: 18px;
+  background: white;
+  box-shadow: 0 10px 26px rgba(25, 67, 96, 0.06);
+}
+
+.admin-stat span { color: #7e8e9a; font-size: 10px; font-weight: 800; letter-spacing: 1.3px; }
+.admin-stat strong { display: block; margin-top: 7px; color: #0e507f; font-size: 23px; line-height: 1.1; }
+.admin-stat strong small { color: #93a5b1; font-size: 14px; font-weight: 700; }
+
+/* -------------------------------------------------------------------- abas */
+
+.admin-tabs {
+  display: inline-flex;
+  gap: 6px;
+  margin-bottom: 18px;
+  padding: 5px;
+  border: 1px solid #e0e5e9;
+  border-radius: 13px;
+  background: white;
+}
+
+.admin-tab {
+  min-height: 40px;
+  padding: 0 20px;
+  color: #5b7386;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.admin-tab:hover { background: #f1f5f8; }
+.admin-tab--active { color: #0e507f; background: #e8f1f7; }
+
+/* ------------------------------------------------------------------ painel */
+
+.admin-panel {
+  padding: 22px;
+  border: 1px solid #e0e5e9;
+  border-radius: 20px;
+  background: white;
+  box-shadow: 0 10px 26px rgba(25, 67, 96, 0.06);
+}
+
+.admin-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #eef1f4;
+}
+
+.admin-filters label { display: flex; flex-direction: column; gap: 6px; }
+.admin-filters__search { flex: 1 1 240px; }
+
+.admin-filters span,
+.admin-court-form span { color: #8496a3; font-size: 11px; font-weight: 800; letter-spacing: 0.8px; }
+
+.admin-filters select,
+.admin-filters input,
+.admin-court-form select,
+.admin-court-form input {
+  min-height: 44px;
+  padding: 0 13px;
+  color: #24455c;
+  border: 1px solid #dde3e8;
+  border-radius: 11px;
+  background: #fbfcfd;
+  font-size: 14px;
+}
+
+.admin-filters select:focus,
+.admin-filters input:focus,
+.admin-court-form select:focus,
+.admin-court-form input:focus { border-color: #80aecb; outline: none; background: white; }
+
+.admin-filters__reset {
+  min-height: 44px;
+  padding: 0 16px;
+  color: #5b7386;
+  border: 1px solid #dde3e8;
+  border-radius: 11px;
+  background: white;
+  cursor: pointer;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.admin-filters__reset:hover { border-color: #80aecb; background: #f6f9fb; }
+
+/* ------------------------------------------------------- cadastro de quadra */
+
+.admin-court-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #eef1f4;
+}
+
+.admin-court-form label { display: flex; flex-direction: column; gap: 6px; }
+.admin-court-form label:first-child { flex: 1 1 280px; }
+
+.admin-court-form button {
+  min-height: 44px;
+  padding: 0 22px;
+  color: #174b70;
+  border: 0;
+  border-radius: 11px;
+  background: #edbd4e;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.admin-court-form button:hover:not(:disabled) { background: #e3ae35; }
+.admin-court-form button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ------------------------------------------------------------------ tabela */
+
+.admin-table-wrapper { overflow-x: auto; }
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+
+.admin-table th {
+  padding: 10px 12px;
+  color: #8496a3;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid #eef1f4;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.admin-table td {
+  padding: 13px 12px;
+  color: #526472;
+  vertical-align: middle;
+  border-bottom: 1px solid #f2f5f7;
+  white-space: nowrap;
+}
+
+.admin-table tbody tr:hover { background: #f9fbfc; }
+.admin-table td strong { display: block; color: #24455c; }
+.admin-table td small { display: block; color: #93a5b1; font-size: 11.5px; }
+.admin-table__code { color: #2d84b8; font-weight: 800; }
+
+.admin-table__actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+.admin-action {
+  min-height: 36px;
+  padding: 0 14px;
+  color: #0e507f;
+  border: 1px solid #cfdde6;
+  border-radius: 9px;
+  background: white;
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.admin-action:hover:not(:disabled) { border-color: #80aecb; background: #f2f8fb; }
+.admin-action:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.admin-action--danger { color: #a63d3d; border-color: #eec9c9; }
+.admin-action--danger:hover:not(:disabled) { border-color: #d99b9b; background: #fdf4f4; }
+
+.admin-status {
+  display: inline-block;
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.admin-status--scheduled { color: #19603f; background: #e4f6ec; }
+.admin-status--completed { color: #2c5a86; background: #e8f1f8; }
+.admin-status--cancelled { color: #8c2f2f; background: #fbeaea; }
+
+.admin-empty {
+  margin: 0;
+  padding: 34px 8px;
+  color: #8496a3;
+  text-align: center;
+  font-size: 14px;
+}
+
+@media (max-width: 1280px) {
+  .admin-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (max-width: 720px) {
+  .admin-main { padding: 32px 18px 60px; }
+  .admin-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-tabs { width: 100%; }
+  .admin-tab { flex: 1; padding: 0 8px; }
+}

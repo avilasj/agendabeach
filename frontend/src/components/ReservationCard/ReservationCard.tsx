@@ -111,7 +111,7 @@ export function ReservationCard({
   onCancel,
   onRebook,
 }: ReservationCardProps) {
-  const { courtTotal, equipmentTotal, serviceFee, total } = getReservationCosts(reservation)
+  const { courtTotal, total } = getReservationCosts(reservation)
   const endTime = toTimeLabel(toMinutes(reservation.startTime) + reservation.hours * 60)
   const detailsId = `reservation-details-${reservation.id}`
 
@@ -211,14 +211,6 @@ export function ReservationCard({
             <li>
               <span>Quadra ({getDurationLabel(reservation.hours)})</span>
               <strong>{formatPrice(courtTotal)}</strong>
-            </li>
-            <li>
-              <span>Equipamentos</span>
-              <strong>{formatPrice(equipmentTotal)}</strong>
-            </li>
-            <li>
-              <span>Taxa de serviço (5%)</span>
-              <strong>{formatPrice(serviceFee)}</strong>
             </li>
             <li>
               <span>Total</span>

@@ -1,12 +1,26 @@
-import { useMemo, useState } from 'react'
-import { AppHeader, ConfirmDialog, PageHeading, ReservationCard, getReservationCosts } from './components'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { AppHeader, ConfirmDialog, PageHeading, ReservationCard } from './components'
 import type { Reservation, ReservationStatus } from './components'
-import { navigationItems } from './navigation'
+import { getNavigationItems } from './navigation'
+import { ApiError, cancelBooking, listCourts, listUserBookings } from './api'
+import type { Booking, Court } from './api'
+import { getInitials } from './session'
+import type { SessionUser } from './session'
+import {
+  formatCurrency,
+  formatDuration,
+  formatShortDate,
+  formatTime,
+  getHoursBetween,
+  parseLocalDateTime,
+} from './datetime'
+import { getRefundPolicy } from './pricing'
 import './MyReservationsPage.css'
 
 type Filter = ReservationStatus | 'all'
 
 type MyReservationsPageProps = {
+  user: SessionUser
   onNavigate: (value: string) => void
   onLogout: () => void
 }
@@ -25,101 +39,73 @@ const emptyMessages: Record<Filter, string> = {
   all: 'Você ainda não fez nenhuma reserva.',
 }
 
-const initialReservations: Reservation[] = [
-  {
-    id: 'ab-0184',
-    code: 'AB-2026-0184',
-    court: 'Quadra 1 · Arena Sunset',
-    surface: 'Areia oficial · Coberta',
-    date: new Date(2026, 5, 18),
-    startTime: '19:00',
-    hours: 1.5,
-    pricePerHour: 120,
-    equipments: [
-      { name: 'Par de raquetes', quantity: 2, price: 25 },
-      { name: 'Iluminação noturna', quantity: 1, price: 40 },
-    ],
-    status: 'upcoming',
-  },
-  {
-    id: 'ab-0179',
-    code: 'AB-2026-0179',
-    court: 'Quadra 4 · Vôlei Pro',
-    surface: 'Areia oficial · Ao ar livre',
-    date: new Date(2026, 5, 22),
-    startTime: '08:00',
-    hours: 2,
-    pricePerHour: 140,
-    equipments: [
-      { name: 'Bola oficial', quantity: 1, price: 15 },
-      { name: 'Kit de coletes', quantity: 2, price: 10 },
-    ],
-    status: 'upcoming',
-  },
-  {
-    id: 'ab-0166',
-    code: 'AB-2026-0166',
-    court: 'Quadra 2 · Beira Mar',
-    surface: 'Areia fina · Ao ar livre',
-    date: new Date(2026, 5, 29),
-    startTime: '16:00',
-    hours: 1,
-    pricePerHour: 100,
-    equipments: [],
-    status: 'upcoming',
-  },
-  {
-    id: 'ab-0142',
-    code: 'AB-2026-0142',
-    court: 'Quadra 3 · Beach Tennis Center',
-    surface: 'Areia compactada · Coberta',
-    date: new Date(2026, 5, 6),
-    startTime: '18:00',
-    hours: 1.5,
-    pricePerHour: 110,
-    equipments: [{ name: 'Par de raquetes', quantity: 2, price: 25 }],
-    status: 'completed',
-  },
-  {
-    id: 'ab-0128',
-    code: 'AB-2026-0128',
-    court: 'Quadra 1 · Arena Sunset',
-    surface: 'Areia oficial · Coberta',
-    date: new Date(2026, 4, 24),
-    startTime: '10:00',
-    hours: 2,
-    pricePerHour: 120,
-    equipments: [
-      { name: 'Cooler com gelo', quantity: 1, price: 20 },
-      { name: 'Bola oficial', quantity: 1, price: 15 },
-    ],
-    status: 'completed',
-  },
-  {
-    id: 'ab-0117',
-    code: 'AB-2026-0117',
-    court: 'Quadra 2 · Beira Mar',
-    surface: 'Areia fina · Ao ar livre',
-    date: new Date(2026, 4, 11),
-    startTime: '17:00',
-    hours: 1,
-    pricePerHour: 100,
-    equipments: [],
-    status: 'cancelled',
-  },
-]
-
-const currencyFormatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
-
-function formatHours(hours: number) {
-  return Number.isInteger(hours) ? `${hours}h` : `${hours.toString().replace('.', ',')}h`
+function getSurface(court: Court | undefined) {
+  if (!court) return 'Quadra de areia'
+  return court.type === 'COVERED' ? 'Areia oficial · Coberta' : 'Areia oficial · Ao ar livre'
 }
 
-export default function MyReservationsPage({ onNavigate, onLogout }: MyReservationsPageProps) {
-  const [reservations, setReservations] = useState(initialReservations)
+function getStatus(booking: Booking, now: Date): ReservationStatus {
+  if (booking.status === 'CANCELLED') return 'cancelled'
+  if (booking.status === 'COMPLETED') return 'completed'
+  return parseLocalDateTime(booking.endTime) < now ? 'completed' : 'upcoming'
+}
+
+/** Converte a reserva vinda da API no formato que o ReservationCard já consome. */
+function toReservation(booking: Booking, courts: Map<number, Court>, now: Date): Reservation {
+  const start = parseLocalDateTime(booking.startTime)
+  const end = parseLocalDateTime(booking.endTime)
+  const hours = getHoursBetween(start, end)
+  const court = courts.get(booking.courtId)
+
+  return {
+    id: String(booking.id),
+    code: `AB-${String(booking.id).padStart(4, '0')}`,
+    court: court?.name ?? `Quadra #${booking.courtId}`,
+    surface: getSurface(court),
+    date: start,
+    startTime: formatTime(start),
+    hours,
+    pricePerHour: hours > 0 ? booking.courtPrice / hours : booking.courtPrice,
+    equipments: [],
+    status: getStatus(booking, now),
+  }
+}
+
+export default function MyReservationsPage({ user, onNavigate, onLogout }: MyReservationsPageProps) {
+  const [bookings, setBookings] = useState<Booking[]>([])
+  const [courts, setCourts] = useState<Court[]>([])
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
+
   const [activeFilter, setActiveFilter] = useState<Filter>('upcoming')
   const [expandedId, setExpandedId] = useState<string | null>(null)
-  const [reservationToCancel, setReservationToCancel] = useState<Reservation | null>(null)
+  const [bookingToCancel, setBookingToCancel] = useState<Booking | null>(null)
+  const [cancelling, setCancelling] = useState(false)
+
+  const loadData = useCallback(() => (
+    Promise.all([listUserBookings(user.id), listCourts()])
+      .then(([loadedBookings, loadedCourts]) => {
+        setBookings(loadedBookings)
+        setCourts(loadedCourts)
+        setLoadError(null)
+      })
+      .catch((caught: unknown) => {
+        setLoadError(caught instanceof ApiError ? caught.message : 'Não foi possível carregar suas reservas.')
+      })
+      .finally(() => setLoading(false))
+  ), [user.id])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
+
+  const courtsById = useMemo(() => new Map(courts.map((court) => [court.id, court])), [courts])
+
+  const reservations = useMemo(() => {
+    const now = new Date()
+    return bookings.map((booking) => toReservation(booking, courtsById, now))
+  }, [bookings, courtsById])
 
   const counts = useMemo(() => ({
     upcoming: reservations.filter((reservation) => reservation.status === 'upcoming').length,
@@ -129,11 +115,12 @@ export default function MyReservationsPage({ onNavigate, onLogout }: MyReservati
   }), [reservations])
 
   const stats = useMemo(() => {
-    const active = reservations.filter((reservation) => reservation.status !== 'cancelled')
     const playedHours = reservations
       .filter((reservation) => reservation.status === 'completed')
       .reduce((total, reservation) => total + reservation.hours, 0)
-    const invested = active.reduce((total, reservation) => total + getReservationCosts(reservation).total, 0)
+    const invested = reservations
+      .filter((reservation) => reservation.status !== 'cancelled')
+      .reduce((total, reservation) => total + reservation.pricePerHour * reservation.hours, 0)
 
     return { playedHours, invested }
   }, [reservations])
@@ -154,22 +141,43 @@ export default function MyReservationsPage({ onNavigate, onLogout }: MyReservati
     setExpandedId((current) => (current === id ? null : id))
   }
 
-  function cancelReservation() {
-    if (!reservationToCancel) return
-
-    setReservations((current) => current.map((reservation) => (
-      reservation.id === reservationToCancel.id ? { ...reservation, status: 'cancelled' } : reservation
-    )))
-    setReservationToCancel(null)
+  function requestCancel(reservationId: string) {
+    setActionError(null)
+    setBookingToCancel(bookings.find((booking) => String(booking.id) === reservationId) ?? null)
   }
+
+  async function confirmCancel() {
+    if (!bookingToCancel) return
+
+    setCancelling(true)
+
+    try {
+      await cancelBooking(bookingToCancel.id)
+      setBookingToCancel(null)
+      await loadData()
+    } catch (caught) {
+      setBookingToCancel(null)
+      setActionError(
+        caught instanceof ApiError && caught.status === 0
+          ? caught.message
+          : 'Não foi possível cancelar esta reserva. Ela pode já ter começado ou sido cancelada.',
+      )
+    } finally {
+      setCancelling(false)
+    }
+  }
+
+  const cancelStart = bookingToCancel ? parseLocalDateTime(bookingToCancel.startTime) : null
+  const cancelPolicy = cancelStart ? getRefundPolicy(cancelStart) : null
 
   return (
     <div className="reservations-page">
       <AppHeader
         activeItem="reservations"
-        navigationItems={navigationItems}
+        navigationItems={getNavigationItems(user)}
         onNavigate={onNavigate}
         onAvatarClick={onLogout}
+        avatarLabel={getInitials(user.name)}
       />
 
       <main className="reservations-main">
@@ -184,6 +192,9 @@ export default function MyReservationsPage({ onNavigate, onLogout }: MyReservati
           </button>
         </div>
 
+        {loadError && <div className="reservations-alert" role="alert">{loadError}</div>}
+        {actionError && <div className="reservations-alert" role="alert">{actionError}</div>}
+
         <div className="reservations-stats">
           <div className="reservations-stat">
             <span>PRÓXIMAS PARTIDAS</span>
@@ -195,11 +206,11 @@ export default function MyReservationsPage({ onNavigate, onLogout }: MyReservati
           </div>
           <div className="reservations-stat">
             <span>HORAS EM QUADRA</span>
-            <strong>{formatHours(stats.playedHours)}</strong>
+            <strong>{formatDuration(stats.playedHours)}</strong>
           </div>
           <div className="reservations-stat">
             <span>TOTAL INVESTIDO</span>
-            <strong>{currencyFormatter.format(stats.invested)}</strong>
+            <strong>{formatCurrency(stats.invested)}</strong>
           </div>
         </div>
 
@@ -218,7 +229,9 @@ export default function MyReservationsPage({ onNavigate, onLogout }: MyReservati
           ))}
         </div>
 
-        {visibleReservations.length > 0 ? (
+        {loading && <div className="reservations-empty"><p>Carregando suas reservas…</p></div>}
+
+        {!loading && visibleReservations.length > 0 && (
           <div className="reservations-list">
             {visibleReservations.map((reservation) => (
               <ReservationCard
@@ -226,12 +239,14 @@ export default function MyReservationsPage({ onNavigate, onLogout }: MyReservati
                 reservation={reservation}
                 expanded={reservation.id === expandedId}
                 onToggleDetails={() => toggleDetails(reservation.id)}
-                onCancel={() => setReservationToCancel(reservation)}
+                onCancel={() => requestCancel(reservation.id)}
                 onRebook={() => onNavigate('booking')}
               />
             ))}
           </div>
-        ) : (
+        )}
+
+        {!loading && visibleReservations.length === 0 && (
           <div className="reservations-empty">
             <p>{emptyMessages[activeFilter]}</p>
             <button type="button" onClick={() => onNavigate('booking')}>Ir para o calendário</button>
@@ -239,24 +254,27 @@ export default function MyReservationsPage({ onNavigate, onLogout }: MyReservati
         )}
       </main>
 
-      {reservationToCancel && (
+      {bookingToCancel && cancelStart && (
         <ConfirmDialog
           eyebrow="CANCELAR RESERVA"
-          title={reservationToCancel.court}
+          title={courtsById.get(bookingToCancel.courtId)?.name ?? `Quadra #${bookingToCancel.courtId}`}
           description={(
             <>
               <p>
-                Tem certeza que deseja cancelar a reserva <strong>{reservationToCancel.code}</strong> do dia{' '}
-                <strong>{new Intl.DateTimeFormat('pt-BR').format(reservationToCancel.date)}</strong> às{' '}
-                <strong>{reservationToCancel.startTime}</strong>?
+                Tem certeza que deseja cancelar a reserva{' '}
+                <strong>AB-{String(bookingToCancel.id).padStart(4, '0')}</strong> do dia{' '}
+                <strong>{formatShortDate(cancelStart)}</strong> às <strong>{formatTime(cancelStart)}</strong>?
               </p>
-              <p>Cancelamentos feitos até 12 horas antes do início da partida não têm custo.</p>
+              <p>
+                {cancelPolicy?.description} Estorno previsto:{' '}
+                <strong>{formatCurrency(bookingToCancel.courtPrice * (cancelPolicy?.rate ?? 0))}</strong>.
+              </p>
             </>
           )}
-          confirmLabel="Cancelar reserva"
+          confirmLabel={cancelling ? 'Cancelando…' : 'Cancelar reserva'}
           dismissLabel="Manter reserva"
-          onConfirm={cancelReservation}
-          onClose={() => setReservationToCancel(null)}
+          onConfirm={() => void confirmCancel()}
+          onClose={() => setBookingToCancel(null)}
         />
       )}
     </div>

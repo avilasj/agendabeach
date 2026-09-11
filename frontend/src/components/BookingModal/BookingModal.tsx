@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
+import { ApiError, createBooking, searchBookings } from '../../api'
+import type { Booking, Court } from '../../api'
+import {
+  combineDateAndTime,
+  formatCurrency,
+  formatFullDate,
+  toDateString,
+  toLocalDateTimeString,
+} from '../../datetime'
+import { estimatePrice, getBasePricePerHour } from '../../pricing'
 import './BookingModal.css'
-
-type Court = {
-  id: string
-  name: string
-  surface: string
-  pricePerHour: number
-  tags: string[]
-  unavailableSlots: string[]
-}
 
 type Equipment = {
   id: string
@@ -23,57 +24,19 @@ type Duration = {
   hours: number
 }
 
-export type ReservationDetails = {
-  date: Date
-  court: Court
-  startTime: string
-  endTime: string
-  hours: number
-  equipments: { equipment: Equipment; quantity: number }[]
-  total: number
-}
-
 type BookingModalProps = {
   selectedDate: Date
+  /** Quadras ativas vindas de GET /courts. */
+  courts: Court[]
+  userId: number
   onClose: () => void
-  onConfirm?: (reservation: ReservationDetails) => void
+  onConfirmed: (booking: Booking) => void
 }
 
-const courts: Court[] = [
-  {
-    id: 'arena-sunset',
-    name: 'Quadra 1 · Arena Sunset',
-    surface: 'Areia oficial · Coberta',
-    pricePerHour: 120,
-    tags: ['Beach-Tennis', 'Iluminação LED'],
-    unavailableSlots: ['09:00', '10:00', '19:00'],
-  },
-  {
-    id: 'beira-mar',
-    name: 'Quadra 2 · Beira Mar',
-    surface: 'Areia fina · Ao ar livre',
-    pricePerHour: 100,
-    tags: ['Beach-Tennis', 'Vista para o mar'],
-    unavailableSlots: ['08:00', '17:00', '18:00', '21:00'],
-  },
-  {
-    id: 'Beach-Tennis',
-    name: 'Quadra 3 · Beach Tennis Center',
-    surface: 'Areia compactada · Coberta',
-    pricePerHour: 110,
-    tags: ['Beach tennis', 'Arquibancada'],
-    unavailableSlots: ['07:00', '12:00', '20:00'],
-  },
-  {
-    id: 'volei-pro',
-    name: 'Quadra 4 · Vôlei Pro',
-    surface: 'Areia oficial · Ao ar livre',
-    pricePerHour: 140,
-    tags: ['Beach-Tennis', 'Placar eletrônico'],
-    unavailableSlots: ['11:00', '15:00', '16:00'],
-  },
-]
-
+/**
+ * Extras combinados no balcão: o banco não guarda equipamentos, então eles não
+ * entram no valor da reserva enviado para a API.
+ */
 const equipments: Equipment[] = [
   { id: 'bola', name: 'Bola oficial', description: 'Bola de vôlei ou futevôlei', price: 15, max: 4 },
   { id: 'raquetes', name: 'Par de raquetes', description: 'Beach tennis com bolinhas', price: 25, max: 4 },
@@ -91,25 +54,15 @@ const durations: Duration[] = [
 
 const openingHour = 7
 const closingHour = 23
+const noBookings: Booking[] = []
 
 const timeSlots = Array.from(
   { length: closingHour - openingHour },
   (_, index) => `${String(openingHour + index).padStart(2, '0')}:00`,
 )
 
-const currencyFormatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
-
-function formatPrice(value: number) {
-  return currencyFormatter.format(value)
-}
-
-function getFullDateLabel(date: Date) {
-  return new Intl.DateTimeFormat('pt-BR', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  }).format(date)
+function getSurfaceLabel(court: Court) {
+  return court.type === 'COVERED' ? 'Areia oficial · Coberta' : 'Areia oficial · Ao ar livre'
 }
 
 function toMinutes(time: string) {
@@ -124,7 +77,7 @@ function toTimeLabel(totalMinutes: number) {
 }
 
 function getDurationLabel(hours: number) {
-  return durations.find((duration) => duration.hours === hours)?.label ?? ''
+  return durations.find((duration) => duration.hours === hours)?.label ?? `${hours} horas`
 }
 
 function CloseIcon() {
@@ -160,11 +113,14 @@ function PlusIcon() {
   )
 }
 
-export function BookingModal({ selectedDate, onClose, onConfirm }: BookingModalProps) {
-  const [selectedCourtId, setSelectedCourtId] = useState<string | null>(null)
+export function BookingModal({ selectedDate, courts, userId, onClose, onConfirmed }: BookingModalProps) {
+  const [selectedCourtId, setSelectedCourtId] = useState<number | null>(null)
   const [selectedTime, setSelectedTime] = useState<string | null>(null)
   const [selectedHours, setSelectedHours] = useState(1)
   const [quantities, setQuantities] = useState<Record<string, number>>({})
+  const [busyState, setBusyState] = useState<{ courtId: number; items: Booking[] } | null>(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -181,22 +137,54 @@ export function BookingModal({ selectedDate, onClose, onConfirm }: BookingModalP
     }
   }, [onClose])
 
+  // Horários já ocupados da quadra escolhida, direto de /bookings/search.
+  useEffect(() => {
+    if (selectedCourtId === null) return
+
+    let active = true
+
+    searchBookings(toDateString(selectedDate), selectedCourtId)
+      .then((found) => {
+        if (!active) return
+        setBusyState({ courtId: selectedCourtId, items: found.filter((booking) => booking.status !== 'CANCELLED') })
+      })
+      .catch(() => {
+        if (!active) return
+        setBusyState({ courtId: selectedCourtId, items: [] })
+        setError('Não foi possível carregar os horários ocupados desta quadra. Confirme antes de reservar.')
+      })
+
+    return () => {
+      active = false
+    }
+  }, [selectedCourtId, selectedDate])
+
   const selectedCourt = courts.find((court) => court.id === selectedCourtId) ?? null
+  const loadingSlots = selectedCourtId !== null && busyState?.courtId !== selectedCourtId
+  const busy = busyState?.courtId === selectedCourtId ? busyState.items : noBookings
 
   const courtSlots = useMemo(() => {
     if (!selectedCourt) return []
 
+    const now = new Date().getTime()
+    const busyIntervals = busy.map((booking) => ({
+      start: new Date(booking.startTime).getTime(),
+      end: new Date(booking.endTime).getTime(),
+    }))
+
     return timeSlots.map((slot) => {
       const startMinutes = toMinutes(slot)
       const endMinutes = startMinutes + selectedHours * 60
-      const overlapsBooked = selectedCourt.unavailableSlots.some((booked) => {
-        const bookedStart = toMinutes(booked)
-        return bookedStart >= startMinutes && bookedStart < endMinutes
-      })
+      const start = combineDateAndTime(selectedDate, slot).getTime()
+      const end = start + selectedHours * 3_600_000
 
-      return { slot, disabled: overlapsBooked || endMinutes > closingHour * 60 }
+      const overlapsBooked = busyIntervals.some((interval) => start < interval.end && end > interval.start)
+      const afterClosing = endMinutes > closingHour * 60
+      const inThePast = start <= now
+
+      return { slot, disabled: overlapsBooked || afterClosing || inThePast }
     })
-  }, [selectedCourt, selectedHours])
+  }, [selectedCourt, selectedHours, busy, selectedDate])
 
   const chosenEquipments = useMemo(
     () => equipments
@@ -205,14 +193,20 @@ export function BookingModal({ selectedDate, onClose, onConfirm }: BookingModalP
     [quantities],
   )
 
-  const courtTotal = selectedCourt ? selectedCourt.pricePerHour * selectedHours : 0
+  const endTime = selectedTime ? toTimeLabel(toMinutes(selectedTime) + selectedHours * 60) : null
   const equipmentTotal = chosenEquipments.reduce(
     (total, { equipment, quantity }) => total + equipment.price * quantity,
     0,
   )
-  const serviceFee = (courtTotal + equipmentTotal) * 0.05
-  const total = courtTotal + equipmentTotal + serviceFee
-  const endTime = selectedTime ? toTimeLabel(toMinutes(selectedTime) + selectedHours * 60) : null
+
+  const courtTotal = useMemo(() => {
+    if (!selectedCourt || !selectedTime) return 0
+
+    const start = combineDateAndTime(selectedDate, selectedTime)
+    const end = new Date(start.getTime() + selectedHours * 3_600_000)
+    return estimatePrice(start, end, selectedCourt.type)
+  }, [selectedCourt, selectedTime, selectedHours, selectedDate])
+
   const isComplete = Boolean(selectedCourt && selectedTime)
 
   function changeQuantity(equipmentId: string, offset: number, max: number) {
@@ -222,9 +216,10 @@ export function BookingModal({ selectedDate, onClose, onConfirm }: BookingModalP
     }))
   }
 
-  function selectCourt(courtId: string) {
+  function selectCourt(courtId: number) {
     setSelectedCourtId(courtId)
     setSelectedTime(null)
+    setError(null)
   }
 
   function changeDuration(hours: number) {
@@ -232,18 +227,31 @@ export function BookingModal({ selectedDate, onClose, onConfirm }: BookingModalP
     setSelectedTime(null)
   }
 
-  function confirmReservation() {
-    if (!selectedCourt || !selectedTime || !endTime) return
+  async function confirmReservation() {
+    if (!selectedCourt || !selectedTime) return
 
-    onConfirm?.({
-      date: selectedDate,
-      court: selectedCourt,
-      startTime: selectedTime,
-      endTime,
-      hours: selectedHours,
-      equipments: chosenEquipments,
-      total,
-    })
+    const start = combineDateAndTime(selectedDate, selectedTime)
+    const end = new Date(start.getTime() + selectedHours * 3_600_000)
+
+    setSubmitting(true)
+    setError(null)
+
+    try {
+      const booking = await createBooking({
+        userId,
+        courtId: selectedCourt.id,
+        startTime: toLocalDateTimeString(start),
+        endTime: toLocalDateTimeString(end),
+      })
+      onConfirmed(booking)
+    } catch (caught) {
+      setError(
+        caught instanceof ApiError && (caught.status === 0 || caught.status === 409)
+          ? caught.message
+          : 'Não foi possível concluir a reserva. O horário pode ter sido ocupado agora há pouco.',
+      )
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -254,7 +262,7 @@ export function BookingModal({ selectedDate, onClose, onConfirm }: BookingModalP
         <header className="booking-modal__header">
           <div>
             <span>RESERVA DE QUADRA</span>
-            <h2 id="booking-modal-title">{getFullDateLabel(selectedDate)}</h2>
+            <h2 id="booking-modal-title">{formatFullDate(selectedDate)}</h2>
           </div>
           <button type="button" onClick={onClose} aria-label="Fechar reserva"><CloseIcon /></button>
         </header>
@@ -267,26 +275,31 @@ export function BookingModal({ selectedDate, onClose, onConfirm }: BookingModalP
                 <strong id="booking-step-court">ESCOLHA A QUADRA</strong>
               </div>
 
-              <div className="court-list">
-                {courts.map((court) => (
-                  <button
-                    key={court.id}
-                    type="button"
-                    className={`court-option${court.id === selectedCourtId ? ' court-option--selected' : ''}`}
-                    onClick={() => selectCourt(court.id)}
-                    aria-pressed={court.id === selectedCourtId}
-                  >
-                    <strong>{court.name}</strong>
-                    <span className="court-option__surface">{court.surface}</span>
-                    <span className="court-option__tags">
-                      {court.tags.map((tag) => <i key={tag}>{tag}</i>)}
-                    </span>
-                    <span className="court-option__price">
-                      {formatPrice(court.pricePerHour)}<small>/hora</small>
-                    </span>
-                  </button>
-                ))}
-              </div>
+              {courts.length === 0 ? (
+                <p className="booking-modal__hint">Nenhuma quadra ativa disponível no momento.</p>
+              ) : (
+                <div className="court-list">
+                  {courts.map((court) => (
+                    <button
+                      key={court.id}
+                      type="button"
+                      className={`court-option${court.id === selectedCourtId ? ' court-option--selected' : ''}`}
+                      onClick={() => selectCourt(court.id)}
+                      aria-pressed={court.id === selectedCourtId}
+                    >
+                      <strong>{court.name}</strong>
+                      <span className="court-option__surface">{getSurfaceLabel(court)}</span>
+                      <span className="court-option__tags">
+                        <i>Beach-Tennis</i>
+                        <i>{court.type === 'COVERED' ? 'Coberta' : 'Ao ar livre'}</i>
+                      </span>
+                      <span className="court-option__price">
+                        {formatCurrency(getBasePricePerHour(court.type))}<small>/hora</small>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </section>
 
             <section className="booking-modal__section" aria-labelledby="booking-step-time">
@@ -310,7 +323,10 @@ export function BookingModal({ selectedDate, onClose, onConfirm }: BookingModalP
                 ))}
               </div>
 
-              {selectedCourt ? (
+              {!selectedCourt && <p className="booking-modal__hint">Escolha uma quadra para ver os horários disponíveis.</p>}
+              {selectedCourt && loadingSlots && <p className="booking-modal__hint">Consultando horários ocupados…</p>}
+
+              {selectedCourt && !loadingSlots && (
                 <div className="time-grid">
                   {courtSlots.map(({ slot, disabled }) => (
                     <button
@@ -325,15 +341,13 @@ export function BookingModal({ selectedDate, onClose, onConfirm }: BookingModalP
                     </button>
                   ))}
                 </div>
-              ) : (
-                <p className="booking-modal__hint">Escolha uma quadra para ver os horários disponíveis.</p>
               )}
             </section>
 
             <section className="booking-modal__section" aria-labelledby="booking-step-equipment">
               <div className="booking-step">
                 <span>4</span>
-                <strong id="booking-step-equipment">EQUIPAMENTOS (OPCIONAL)</strong>
+                <strong id="booking-step-equipment">EXTRAS (PAGOS NO LOCAL)</strong>
               </div>
 
               <ul className="equipment-list">
@@ -350,7 +364,7 @@ export function BookingModal({ selectedDate, onClose, onConfirm }: BookingModalP
                         <span>{equipment.description}</span>
                       </div>
 
-                      <span className="equipment-item__price">{formatPrice(equipment.price)}</span>
+                      <span className="equipment-item__price">{formatCurrency(equipment.price)}</span>
 
                       <div className="equipment-item__stepper">
                         <button
@@ -381,10 +395,12 @@ export function BookingModal({ selectedDate, onClose, onConfirm }: BookingModalP
           <aside className="booking-modal__details" aria-live="polite">
             <h3>Detalhes da reserva</h3>
 
+            {error && <p className="booking-modal__error" role="alert">{error}</p>}
+
             <dl className="reservation-details">
               <div>
                 <dt>Data</dt>
-                <dd>{getFullDateLabel(selectedDate)}</dd>
+                <dd>{formatFullDate(selectedDate)}</dd>
               </div>
               <div>
                 <dt>Quadra</dt>
@@ -399,7 +415,7 @@ export function BookingModal({ selectedDate, onClose, onConfirm }: BookingModalP
                 <dd>{getDurationLabel(selectedHours)}</dd>
               </div>
               <div>
-                <dt>Equipamentos</dt>
+                <dt>Extras</dt>
                 <dd>
                   {chosenEquipments.length === 0
                     ? <em>Nenhum</em>
@@ -413,29 +429,31 @@ export function BookingModal({ selectedDate, onClose, onConfirm }: BookingModalP
             <ul className="reservation-costs">
               <li>
                 <span>Quadra ({getDurationLabel(selectedHours)})</span>
-                <strong>{formatPrice(courtTotal)}</strong>
+                <strong>{formatCurrency(courtTotal)}</strong>
               </li>
               <li>
-                <span>Equipamentos</span>
-                <strong>{formatPrice(equipmentTotal)}</strong>
-              </li>
-              <li>
-                <span>Taxa de serviço (5%)</span>
-                <strong>{formatPrice(serviceFee)}</strong>
+                <span>Extras no local</span>
+                <strong>{formatCurrency(equipmentTotal)}</strong>
               </li>
             </ul>
 
             <div className="reservation-total">
-              <span>Total</span>
-              <strong>{formatPrice(total)}</strong>
+              <span>Total da reserva</span>
+              <strong>{formatCurrency(courtTotal)}</strong>
             </div>
 
-            <button type="button" className="reservation-confirm" disabled={!isComplete} onClick={confirmReservation}>
-              {isComplete ? 'Confirmar reserva' : 'Escolha quadra e horário'}
+            <button
+              type="button"
+              className="reservation-confirm"
+              disabled={!isComplete || submitting}
+              onClick={() => void confirmReservation()}
+            >
+              {submitting ? 'Confirmando…' : isComplete ? 'Confirmar reserva' : 'Escolha quadra e horário'}
             </button>
 
             <p className="reservation-note">
-              Pagamento na chegada. Cancelamento gratuito até 12 horas antes do início da partida.
+              Pagamento na chegada. Cancelamento gratuito até 24 horas antes do início da partida;
+              entre 12 e 24 horas, o estorno é de 50%.
             </p>
           </aside>
         </div>

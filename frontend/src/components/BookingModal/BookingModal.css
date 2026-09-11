@@ -304,3 +304,14 @@
   .equipment-item__info { flex-basis: 100%; }
   .equipment-item__stepper { margin-left: auto; }
 }
+
+.booking-modal__error {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  color: #8c2f2f;
+  border: 1px solid #f0c4c4;
+  border-radius: 12px;
+  background: #fdf1f1;
+  font-size: 13px;
+  line-height: 1.5;
+}
