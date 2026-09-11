@@ -35,9 +35,7 @@ type AdminPageProps = {
 
 type Tab = 'bookings' | 'courts' | 'users'
 
-type PendingAction =
-  | { type: 'cancel-booking'; booking: Booking }
-  | { type: 'delete-court'; court: Court }
+type PendingAction = { type: 'cancel-booking'; booking: Booking } | { type: 'delete-court'; court: Court }
 
 const tabs: { label: string; value: Tab }[] = [
   { label: 'Reservas', value: 'bookings' },
@@ -77,19 +75,23 @@ export default function AdminPage({ user, onNavigate, onLogout }: AdminPageProps
 
   const allowed = canTryAdmin(user)
 
-  const loadData = useCallback(() => (
-    Promise.all([listBookings(), listCourts(), listUsers()])
-      .then(([loadedBookings, loadedCourts, loadedUsers]) => {
-        setBookings(loadedBookings)
-        setCourts(loadedCourts)
-        setUsers(loadedUsers)
-        setLoadError(null)
-      })
-      .catch((caught: unknown) => {
-        setLoadError(caught instanceof ApiError ? caught.message : 'Não foi possível carregar os dados administrativos.')
-      })
-      .finally(() => setLoading(false))
-  ), [])
+  const loadData = useCallback(
+    () =>
+      Promise.all([listBookings(), listCourts(), listUsers()])
+        .then(([loadedBookings, loadedCourts, loadedUsers]) => {
+          setBookings(loadedBookings)
+          setCourts(loadedCourts)
+          setUsers(loadedUsers)
+          setLoadError(null)
+        })
+        .catch((caught: unknown) => {
+          setLoadError(
+            caught instanceof ApiError ? caught.message : 'Não foi possível carregar os dados administrativos.',
+          )
+        })
+        .finally(() => setLoading(false)),
+    [],
+  )
 
   useEffect(() => {
     if (allowed) loadData()
@@ -133,7 +135,10 @@ export default function AdminPage({ user, onNavigate, onLogout }: AdminPageProps
 
         return true
       })
-      .sort((first, second) => parseLocalDateTime(second.startTime).getTime() - parseLocalDateTime(first.startTime).getTime())
+      .sort(
+        (first, second) =>
+          parseLocalDateTime(second.startTime).getTime() - parseLocalDateTime(first.startTime).getTime(),
+      )
   }, [bookings, statusFilter, courtFilter, dateFilter, search, usersById])
 
   const bookingsByUser = useMemo(() => {
@@ -158,9 +163,7 @@ export default function AdminPage({ user, onNavigate, onLogout }: AdminPageProps
   function reportError(caught: unknown, fallback: string) {
     setFeedback({
       tone: 'error',
-      message: caught instanceof ApiError && (caught.status === 0 || caught.status === 403)
-        ? caught.message
-        : fallback,
+      message: caught instanceof ApiError && (caught.status === 0 || caught.status === 403) ? caught.message : fallback,
     })
   }
 
@@ -248,10 +251,12 @@ export default function AdminPage({ user, onNavigate, onLogout }: AdminPageProps
             <span>ACESSO RESTRITO</span>
             <h1>Esta área é exclusiva de administradores</h1>
             <p>
-              Sua conta está cadastrada como cliente. Se você precisa gerenciar quadras e reservas,
-              peça a um administrador para alterar seu perfil.
+              Sua conta está cadastrada como cliente. Se você precisa gerenciar quadras e reservas, peça a um
+              administrador para alterar seu perfil.
             </p>
-            <button type="button" onClick={() => onNavigate('booking')}>Voltar para os agendamentos</button>
+            <button type="button" onClick={() => onNavigate('booking')}>
+              Voltar para os agendamentos
+            </button>
           </div>
         </main>
       </div>
@@ -282,12 +287,16 @@ export default function AdminPage({ user, onNavigate, onLogout }: AdminPageProps
 
         {user.profile === 'UNKNOWN' && (
           <div className="admin-banner admin-banner--warn" role="status">
-            Não foi possível confirmar seu perfil no servidor (nenhuma quadra cadastrada para a verificação).
-            As ações administrativas continuam protegidas pelo backend.
+            Não foi possível confirmar seu perfil no servidor (nenhuma quadra cadastrada para a verificação). As ações
+            administrativas continuam protegidas pelo backend.
           </div>
         )}
 
-        {loadError && <div className="admin-banner admin-banner--error" role="alert">{loadError}</div>}
+        {loadError && (
+          <div className="admin-banner admin-banner--error" role="alert">
+            {loadError}
+          </div>
+        )}
         {feedback && (
           <div className={`admin-banner admin-banner--${feedback.tone === 'ok' ? 'ok' : 'error'}`} role="status">
             {feedback.message}
@@ -313,7 +322,10 @@ export default function AdminPage({ user, onNavigate, onLogout }: AdminPageProps
           </div>
           <div className="admin-stat">
             <span>QUADRAS ATIVAS</span>
-            <strong>{stats.activeCourts}<small>/{stats.courts}</small></strong>
+            <strong>
+              {stats.activeCourts}
+              <small>/{stats.courts}</small>
+            </strong>
           </div>
           <div className="admin-stat">
             <span>CLIENTES</span>
@@ -341,7 +353,10 @@ export default function AdminPage({ user, onNavigate, onLogout }: AdminPageProps
             <div className="admin-filters">
               <label>
                 <span>Status</span>
-                <select value={statusFilter} onChange={(event) => setStatusFilter(event.currentTarget.value as BookingStatus | 'ALL')}>
+                <select
+                  value={statusFilter}
+                  onChange={(event) => setStatusFilter(event.currentTarget.value as BookingStatus | 'ALL')}
+                >
                   <option value="ALL">Todos</option>
                   <option value="SCHEDULED">Agendadas</option>
                   <option value="COMPLETED">Realizadas</option>
@@ -353,11 +368,15 @@ export default function AdminPage({ user, onNavigate, onLogout }: AdminPageProps
                 <span>Quadra</span>
                 <select
                   value={String(courtFilter)}
-                  onChange={(event) => setCourtFilter(event.currentTarget.value === 'ALL' ? 'ALL' : Number(event.currentTarget.value))}
+                  onChange={(event) =>
+                    setCourtFilter(event.currentTarget.value === 'ALL' ? 'ALL' : Number(event.currentTarget.value))
+                  }
                 >
                   <option value="ALL">Todas</option>
                   {courts.map((court) => (
-                    <option key={court.id} value={court.id}>{court.name}</option>
+                    <option key={court.id} value={court.id}>
+                      {court.name}
+                    </option>
                   ))}
                 </select>
               </label>
@@ -391,7 +410,9 @@ export default function AdminPage({ user, onNavigate, onLogout }: AdminPageProps
               </button>
             </div>
 
-            {loading ? <p className="admin-empty">Carregando reservas…</p> : (
+            {loading ? (
+              <p className="admin-empty">Carregando reservas…</p>
+            ) : (
               <div className="admin-table-wrapper">
                 <table className="admin-table">
                   <thead>
@@ -424,7 +445,9 @@ export default function AdminPage({ user, onNavigate, onLogout }: AdminPageProps
                           </td>
                           <td>{court?.name ?? `Quadra #${booking.courtId}`}</td>
                           <td>{formatShortDate(start)}</td>
-                          <td>{formatTime(start)} – {formatTime(end)}</td>
+                          <td>
+                            {formatTime(start)} – {formatTime(end)}
+                          </td>
                           <td>{formatDuration(getHoursBetween(start, end))}</td>
                           <td>{formatCurrency(booking.courtPrice)}</td>
                           <td>
@@ -450,7 +473,9 @@ export default function AdminPage({ user, onNavigate, onLogout }: AdminPageProps
                   </tbody>
                 </table>
 
-                {visibleBookings.length === 0 && <p className="admin-empty">Nenhuma reserva encontrada com esses filtros.</p>}
+                {visibleBookings.length === 0 && (
+                  <p className="admin-empty">Nenhuma reserva encontrada com esses filtros.</p>
+                )}
               </div>
             )}
           </section>
@@ -479,10 +504,14 @@ export default function AdminPage({ user, onNavigate, onLogout }: AdminPageProps
                 </select>
               </label>
 
-              <button type="submit" disabled={busy}>Cadastrar quadra</button>
+              <button type="submit" disabled={busy}>
+                Cadastrar quadra
+              </button>
             </form>
 
-            {loading ? <p className="admin-empty">Carregando quadras…</p> : (
+            {loading ? (
+              <p className="admin-empty">Carregando quadras…</p>
+            ) : (
               <div className="admin-table-wrapper">
                 <table className="admin-table">
                   <thead>
@@ -503,17 +532,29 @@ export default function AdminPage({ user, onNavigate, onLogout }: AdminPageProps
                       return (
                         <tr key={court.id}>
                           <td className="admin-table__code">{court.id}</td>
-                          <td><strong>{court.name}</strong></td>
+                          <td>
+                            <strong>{court.name}</strong>
+                          </td>
                           <td>{courtTypeLabels[court.type]}</td>
-                          <td>{formatCurrency(court.type === 'COVERED' ? 120 : 100)}<small>/hora</small></td>
+                          <td>
+                            {formatCurrency(court.type === 'COVERED' ? 120 : 100)}
+                            <small>/hora</small>
+                          </td>
                           <td>{courtBookings}</td>
                           <td>
-                            <span className={`admin-status admin-status--${court.status === 'ACTIVE' ? 'scheduled' : 'cancelled'}`}>
+                            <span
+                              className={`admin-status admin-status--${court.status === 'ACTIVE' ? 'scheduled' : 'cancelled'}`}
+                            >
                               {court.status === 'ACTIVE' ? 'Ativa' : 'Inativa'}
                             </span>
                           </td>
                           <td className="admin-table__actions">
-                            <button type="button" className="admin-action" onClick={() => toggleCourtStatus(court)} disabled={busy}>
+                            <button
+                              type="button"
+                              className="admin-action"
+                              onClick={() => toggleCourtStatus(court)}
+                              disabled={busy}
+                            >
                               {court.status === 'ACTIVE' ? 'Desativar' : 'Ativar'}
                             </button>
                             <button
@@ -539,7 +580,9 @@ export default function AdminPage({ user, onNavigate, onLogout }: AdminPageProps
 
         {tab === 'users' && (
           <section className="admin-panel" aria-label="Clientes">
-            {loading ? <p className="admin-empty">Carregando clientes…</p> : (
+            {loading ? (
+              <p className="admin-empty">Carregando clientes…</p>
+            ) : (
               <div className="admin-table-wrapper">
                 <table className="admin-table">
                   <thead>
@@ -558,7 +601,9 @@ export default function AdminPage({ user, onNavigate, onLogout }: AdminPageProps
                       return (
                         <tr key={item.id}>
                           <td className="admin-table__code">{item.id}</td>
-                          <td><strong>{item.name}</strong></td>
+                          <td>
+                            <strong>{item.name}</strong>
+                          </td>
                           <td>{item.email}</td>
                           <td>{totals.count}</td>
                           <td>{formatCurrency(totals.amount)}</td>
@@ -578,23 +623,30 @@ export default function AdminPage({ user, onNavigate, onLogout }: AdminPageProps
       {pending && (
         <ConfirmDialog
           eyebrow={pending.type === 'cancel-booking' ? 'CANCELAR RESERVA' : 'EXCLUIR QUADRA'}
-          title={pending.type === 'cancel-booking'
-            ? courtsById.get(pending.booking.courtId)?.name ?? `Reserva #${pending.booking.id}`
-            : pending.court.name}
-          description={pending.type === 'cancel-booking' ? (
-            <>
-              <p>
-                Cancelar a reserva <strong>AB-{String(pending.booking.id).padStart(4, '0')}</strong> de{' '}
-                <strong>{usersById.get(pending.booking.userId)?.name ?? `usuário #${pending.booking.userId}`}</strong>?
-              </p>
-              <p>O sistema calcula o estorno conforme a antecedência do cancelamento.</p>
-            </>
-          ) : (
-            <>
-              <p>Remover a quadra <strong>{pending.court.name}</strong> do catálogo?</p>
-              <p>Quadras que já possuem reservas não podem ser excluídas — nesse caso, desative-a.</p>
-            </>
-          )}
+          title={
+            pending.type === 'cancel-booking'
+              ? (courtsById.get(pending.booking.courtId)?.name ?? `Reserva #${pending.booking.id}`)
+              : pending.court.name
+          }
+          description={
+            pending.type === 'cancel-booking' ? (
+              <>
+                <p>
+                  Cancelar a reserva <strong>AB-{String(pending.booking.id).padStart(4, '0')}</strong> de{' '}
+                  <strong>{usersById.get(pending.booking.userId)?.name ?? `usuário #${pending.booking.userId}`}</strong>
+                  ?
+                </p>
+                <p>O sistema calcula o estorno conforme a antecedência do cancelamento.</p>
+              </>
+            ) : (
+              <>
+                <p>
+                  Remover a quadra <strong>{pending.court.name}</strong> do catálogo?
+                </p>
+                <p>Quadras que já possuem reservas não podem ser excluídas — nesse caso, desative-a.</p>
+              </>
+            )
+          }
           confirmLabel={busy ? 'Processando…' : 'Confirmar'}
           dismissLabel="Voltar"
           onConfirm={confirmPending}

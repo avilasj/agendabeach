@@ -8,8 +8,13 @@
   background: radial-gradient(circle at 100% 0%, rgba(232, 180, 65, 0.07), transparent 23%), #f8fafc;
 }
 
-.auth-panel__top { display: flex; justify-content: flex-end; }
-.auth-panel__top a { text-decoration: none; }
+.auth-panel__top {
+  display: flex;
+  justify-content: flex-end;
+}
+.auth-panel__top a {
+  text-decoration: none;
+}
 
 .auth-card {
   width: 100%;
@@ -22,7 +27,9 @@
   box-shadow: 0 22px 60px rgba(12, 56, 88, 0.08);
 }
 
-.auth-card__heading { margin-bottom: 25px; }
+.auth-card__heading {
+  margin-bottom: 25px;
+}
 
 .auth-card__kicker {
   color: #edbd4e;
@@ -38,7 +45,9 @@
   letter-spacing: -0.8px;
 }
 
-.auth-card__heading > p:last-child { font-size: 14px; }
+.auth-card__heading > p:last-child {
+  font-size: 14px;
+}
 
 .auth-switch {
   margin-bottom: 25px;
@@ -47,7 +56,9 @@
   background: #f4f6f8;
 }
 
-.auth-switch .mantine-SegmentedControl-control::before { display: none; }
+.auth-switch .mantine-SegmentedControl-control::before {
+  display: none;
+}
 
 .auth-switch .mantine-SegmentedControl-label {
   padding: 9px 12px;
@@ -56,7 +67,9 @@
   font-weight: 700;
 }
 
-.auth-switch .mantine-SegmentedControl-label[data-active] { color: #0f4f7c; }
+.auth-switch .mantine-SegmentedControl-label[data-active] {
+  color: #0f4f7c;
+}
 
 .auth-switch .mantine-SegmentedControl-indicator {
   border: 1px solid rgba(15, 79, 124, 0.08);
@@ -83,7 +96,10 @@
   border-radius: 9px;
   background: #fbfcfd;
   font-size: 14px;
-  transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background 160ms ease;
 }
 
 .auth-card .mantine-Input-input:focus,
@@ -93,8 +109,13 @@
   box-shadow: 0 0 0 3px rgba(15, 79, 124, 0.09);
 }
 
-.auth-card .mantine-Input-section { color: #81909d; }
-.auth-card .mantine-Checkbox-label { color: #5e6e7b; font-size: 13px; }
+.auth-card .mantine-Input-section {
+  color: #81909d;
+}
+.auth-card .mantine-Checkbox-label {
+  color: #5e6e7b;
+  font-size: 13px;
+}
 
 .auth-card .mantine-Button-root {
   height: 49px;
@@ -103,7 +124,9 @@
   box-shadow: 0 7px 18px rgba(224, 170, 50, 0.2);
   font-size: 14px;
   font-weight: 800;
-  transition: transform 160ms ease, box-shadow 160ms ease;
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease;
 }
 
 .auth-card .mantine-Button-root:hover {
@@ -111,13 +134,28 @@
   box-shadow: 0 10px 22px rgba(224, 170, 50, 0.28);
 }
 
-.auth-card .mantine-Divider-label { color: #a0aab2; font-size: 11px; }
-.auth-card .mantine-Anchor-root { text-decoration: none; }
-.auth-panel__footer { margin-top: 22px; }
-.mobile-brand { display: none; }
+.auth-card .mantine-Divider-label {
+  color: #a0aab2;
+  font-size: 11px;
+}
+.auth-card .mantine-Anchor-root {
+  text-decoration: none;
+}
+.auth-panel__footer {
+  margin-top: 22px;
+}
+.mobile-brand {
+  display: none;
+}
 
 @media (max-width: 860px) {
-  .auth-panel { height: auto; min-height: auto; overflow: visible; padding: 0 22px 12px; background: transparent; }
+  .auth-panel {
+    height: auto;
+    min-height: auto;
+    overflow: visible;
+    padding: 0 22px 12px;
+    background: transparent;
+  }
 
   .mobile-brand {
     position: relative;
@@ -141,14 +179,28 @@
     border-radius: 50%;
   }
 
-  .auth-panel__top { display: none; }
-  .auth-card { max-width: 500px; padding: 32px clamp(22px, 7vw, 42px) 30px; }
-  .auth-panel__footer { margin-top: 20px; }
+  .auth-panel__top {
+    display: none;
+  }
+  .auth-card {
+    max-width: 500px;
+    padding: 32px clamp(22px, 7vw, 42px) 30px;
+  }
+  .auth-panel__footer {
+    margin-top: 20px;
+  }
 }
 
 @media (max-width: 480px) {
-  .auth-card { border-radius: 16px; box-shadow: 0 15px 38px rgba(12, 56, 88, 0.07); }
-  .auth-card__heading h2 { font-size: 27px; }
+  .auth-card {
+    border-radius: 16px;
+    box-shadow: 0 15px 38px rgba(12, 56, 88, 0.07);
+  }
+  .auth-card__heading h2 {
+    font-size: 27px;
+  }
   .auth-card .mantine-Anchor-root,
-  .auth-card .mantine-Checkbox-label { font-size: 12px; }
+  .auth-card .mantine-Checkbox-label {
+    font-size: 12px;
+  }
 }

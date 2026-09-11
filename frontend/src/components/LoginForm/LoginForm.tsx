@@ -37,7 +37,11 @@ export function LoginForm({ onLogin, onShowRegister }: LoginFormProps) {
   return (
     <form onSubmit={handleSubmit}>
       <Stack gap="md">
-        {error && <Alert color="red" variant="light" role="alert">{error}</Alert>}
+        {error && (
+          <Alert color="red" variant="light" role="alert">
+            {error}
+          </Alert>
+        )}
 
         <TextInput
           label="E-mail"
@@ -60,7 +64,9 @@ export function LoginForm({ onLogin, onShowRegister }: LoginFormProps) {
         />
         <Group justify="space-between" align="center" mt={2}>
           <Checkbox label="Lembrar de mim" color="gold" defaultChecked />
-          <Anchor component="button" type="button" size="sm" fw={600} c="brand.8">Esqueci minha senha</Anchor>
+          <Anchor component="button" type="button" size="sm" fw={600} c="brand.8">
+            Esqueci minha senha
+          </Anchor>
         </Group>
         <Button type="submit" fullWidth size="md" color="gold" rightSection={<ArrowIcon />} mt="xs" loading={loading}>
           Entrar na minha conta
@@ -70,7 +76,9 @@ export function LoginForm({ onLogin, onShowRegister }: LoginFormProps) {
       <Divider label="ou" labelPosition="center" my="xl" />
       <Text ta="center" size="sm" c="dimmed">
         Ainda não tem uma conta?{' '}
-        <Anchor component="button" type="button" fw={700} c="brand.8" onClick={onShowRegister}>Cadastre-se grátis</Anchor>
+        <Anchor component="button" type="button" fw={700} c="brand.8" onClick={onShowRegister}>
+          Cadastre-se grátis
+        </Anchor>
       </Text>
     </form>
   )

@@ -34,11 +34,7 @@ function startOfDay(date: Date) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate())
 }
 
-function createCalendarDays(
-  month: Date,
-  availability: Record<string, Availability>,
-  minDate: Date,
-): CalendarDay[] {
+function createCalendarDays(month: Date, availability: Record<string, Availability>, minDate: Date): CalendarDay[] {
   const year = month.getFullYear()
   const monthIndex = month.getMonth()
   const totalDays = new Date(year, monthIndex + 1, 0).getDate()
@@ -70,9 +66,11 @@ function getFullDateLabel(date: Date) {
 }
 
 function isSameDate(first: Date | null, second: Date) {
-  return first?.getFullYear() === second.getFullYear()
-    && first.getMonth() === second.getMonth()
-    && first.getDate() === second.getDate()
+  return (
+    first?.getFullYear() === second.getFullYear() &&
+    first.getMonth() === second.getMonth() &&
+    first.getDate() === second.getDate()
+  )
 }
 
 function ChevronIcon({ direction }: { direction: 'left' | 'right' }) {
@@ -117,7 +115,9 @@ export function Calendar({
       </div>
 
       <div className="calendar-grid calendar-grid--weekdays" aria-hidden="true">
-        {weekdays.map((weekday) => <span key={weekday}>{weekday}</span>)}
+        {weekdays.map((weekday) => (
+          <span key={weekday}>{weekday}</span>
+        ))}
       </div>
 
       <div className="calendar-grid calendar-grid--days">
@@ -146,9 +146,18 @@ export function Calendar({
       </div>
 
       <div className="calendar-legend" aria-label="Legenda de disponibilidade">
-        <span><i className="legend-dot legend-dot--available" />Vários horários</span>
-        <span><i className="legend-dot legend-dot--limited" />Poucos horários</span>
-        <span><i className="legend-dot legend-dot--full" />Lotado</span>
+        <span>
+          <i className="legend-dot legend-dot--available" />
+          Vários horários
+        </span>
+        <span>
+          <i className="legend-dot legend-dot--limited" />
+          Poucos horários
+        </span>
+        <span>
+          <i className="legend-dot legend-dot--full" />
+          Lotado
+        </span>
       </div>
     </section>
   )

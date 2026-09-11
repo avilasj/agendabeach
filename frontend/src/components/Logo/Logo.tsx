@@ -20,7 +20,16 @@ export function Logo({ compact = false, showTagline = false }: LogoProps) {
         </defs>
         <rect x="6" y="9" width="56" height="54" rx="15" fill="#0b426c" />
         <path d="M6 23c0-7.7 6.3-14 14-14h28c7.7 0 14 6.3 14 14v3H6v-3Z" fill={`url(#${gradientId})`} />
-        <ellipse cx="34" cy="40" rx="10" ry="13" transform="rotate(-18 34 40)" fill="none" stroke="#fff9ec" strokeWidth="2.4" />
+        <ellipse
+          cx="34"
+          cy="40"
+          rx="10"
+          ry="13"
+          transform="rotate(-18 34 40)"
+          fill="none"
+          stroke="#fff9ec"
+          strokeWidth="2.4"
+        />
         <path d="m37.5 52 3.8 8" stroke="#fff9ec" strokeWidth="2.4" strokeLinecap="round" />
         <circle cx="31" cy="35" r="1.3" fill="#fff9ec" />
         <circle cx="36" cy="39" r="1.3" fill="#fff9ec" />
@@ -28,7 +37,10 @@ export function Logo({ compact = false, showTagline = false }: LogoProps) {
       </svg>
 
       <div className="app-brand__wordmark">
-        <div><strong>Agenda</strong><span>Beach</span></div>
+        <div>
+          <strong>Agenda</strong>
+          <span>Beach</span>
+        </div>
         {showTagline && <small>AGENDAMENTO DE QUADRAS</small>}
       </div>
     </div>

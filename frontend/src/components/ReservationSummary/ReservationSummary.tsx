@@ -32,16 +32,24 @@ export function ReservationSummary({ selectedDate, onOpenBooking }: ReservationS
       </div>
 
       <div className="booking-summary__body">
-        <div className="booking-summary__icon"><CalendarIcon /></div>
+        <div className="booking-summary__icon">
+          <CalendarIcon />
+        </div>
         {selectedDate ? (
           <>
             <span className="booking-summary__label">DATA SELECIONADA</span>
             <strong>{getFullDateLabel(selectedDate)}</strong>
             <p>Agora escolha a quadra e o melhor horário para sua partida.</p>
-            <button type="button" onClick={onOpenBooking}>Escolher quadra e horário</button>
+            <button type="button" onClick={onOpenBooking}>
+              Escolher quadra e horário
+            </button>
           </>
         ) : (
-          <p>Nenhum dia selecionado.<br />Comece escolhendo uma data no calendário.</p>
+          <p>
+            Nenhum dia selecionado.
+            <br />
+            Comece escolhendo uma data no calendário.
+          </p>
         )}
       </div>
     </aside>

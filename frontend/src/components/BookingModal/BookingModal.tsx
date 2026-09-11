@@ -1,13 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ApiError, createBooking, searchBookings } from '../../api'
 import type { Booking, Court } from '../../api'
-import {
-  combineDateAndTime,
-  formatCurrency,
-  formatFullDate,
-  toDateString,
-  toLocalDateTimeString,
-} from '../../datetime'
+import { combineDateAndTime, formatCurrency, formatFullDate, toDateString, toLocalDateTimeString } from '../../datetime'
 import { estimatePrice, getBasePricePerHour } from '../../pricing'
 import './BookingModal.css'
 
@@ -187,9 +181,10 @@ export function BookingModal({ selectedDate, courts, userId, onClose, onConfirme
   }, [selectedCourt, selectedHours, busy, selectedDate])
 
   const chosenEquipments = useMemo(
-    () => equipments
-      .map((equipment) => ({ equipment, quantity: quantities[equipment.id] ?? 0 }))
-      .filter(({ quantity }) => quantity > 0),
+    () =>
+      equipments
+        .map((equipment) => ({ equipment, quantity: quantities[equipment.id] ?? 0 }))
+        .filter(({ quantity }) => quantity > 0),
     [quantities],
   )
 
@@ -264,7 +259,9 @@ export function BookingModal({ selectedDate, courts, userId, onClose, onConfirme
             <span>RESERVA DE QUADRA</span>
             <h2 id="booking-modal-title">{formatFullDate(selectedDate)}</h2>
           </div>
-          <button type="button" onClick={onClose} aria-label="Fechar reserva"><CloseIcon /></button>
+          <button type="button" onClick={onClose} aria-label="Fechar reserva">
+            <CloseIcon />
+          </button>
         </header>
 
         <div className="booking-modal__content">
@@ -294,7 +291,8 @@ export function BookingModal({ selectedDate, courts, userId, onClose, onConfirme
                         <i>{court.type === 'COVERED' ? 'Coberta' : 'Ao ar livre'}</i>
                       </span>
                       <span className="court-option__price">
-                        {formatCurrency(getBasePricePerHour(court.type))}<small>/hora</small>
+                        {formatCurrency(getBasePricePerHour(court.type))}
+                        <small>/hora</small>
                       </span>
                     </button>
                   ))}
@@ -323,7 +321,9 @@ export function BookingModal({ selectedDate, courts, userId, onClose, onConfirme
                 ))}
               </div>
 
-              {!selectedCourt && <p className="booking-modal__hint">Escolha uma quadra para ver os horários disponíveis.</p>}
+              {!selectedCourt && (
+                <p className="booking-modal__hint">Escolha uma quadra para ver os horários disponíveis.</p>
+              )}
               {selectedCourt && loadingSlots && <p className="booking-modal__hint">Consultando horários ocupados…</p>}
 
               {selectedCourt && !loadingSlots && (
@@ -395,7 +395,11 @@ export function BookingModal({ selectedDate, courts, userId, onClose, onConfirme
           <aside className="booking-modal__details" aria-live="polite">
             <h3>Detalhes da reserva</h3>
 
-            {error && <p className="booking-modal__error" role="alert">{error}</p>}
+            {error && (
+              <p className="booking-modal__error" role="alert">
+                {error}
+              </p>
+            )}
 
             <dl className="reservation-details">
               <div>
@@ -417,11 +421,15 @@ export function BookingModal({ selectedDate, courts, userId, onClose, onConfirme
               <div>
                 <dt>Extras</dt>
                 <dd>
-                  {chosenEquipments.length === 0
-                    ? <em>Nenhum</em>
-                    : chosenEquipments.map(({ equipment, quantity }) => (
-                      <span key={equipment.id}>{quantity}× {equipment.name}</span>
-                    ))}
+                  {chosenEquipments.length === 0 ? (
+                    <em>Nenhum</em>
+                  ) : (
+                    chosenEquipments.map(({ equipment, quantity }) => (
+                      <span key={equipment.id}>
+                        {quantity}× {equipment.name}
+                      </span>
+                    ))
+                  )}
                 </dd>
               </div>
             </dl>
@@ -452,8 +460,8 @@ export function BookingModal({ selectedDate, courts, userId, onClose, onConfirme
             </button>
 
             <p className="reservation-note">
-              Pagamento na chegada. Cancelamento gratuito até 24 horas antes do início da partida;
-              entre 12 e 24 horas, o estorno é de 50%.
+              Pagamento na chegada. Cancelamento gratuito até 24 horas antes do início da partida; entre 12 e 24 horas,
+              o estorno é de 50%.
             </p>
           </aside>
         </div>

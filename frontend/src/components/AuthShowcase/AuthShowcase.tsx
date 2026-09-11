@@ -11,11 +11,23 @@ export function AuthShowcase() {
 
       <div className="showcase__content">
         <Text className="showcase__eyebrow">SEU JOGO COMEÇA AQUI</Text>
-        <Title className="showcase__title" order={1}>Menos espera.<br />Mais <span>Beach Tennis.</span></Title>
-        <Text className="showcase__copy">Encontre sua quadra, escolha o melhor horário e faça sua reserva em poucos minutos.</Text>
+        <Title className="showcase__title" order={1}>
+          Menos espera.
+          <br />
+          Mais <span>Beach Tennis.</span>
+        </Title>
+        <Text className="showcase__copy">
+          Encontre sua quadra, escolha o melhor horário e faça sua reserva em poucos minutos.
+        </Text>
         <Group className="showcase__features" gap="xl">
-          <div><CheckIcon /><span>Reserva rápida</span></div>
-          <div><CheckIcon /><span>Horários em tempo real</span></div>
+          <div>
+            <CheckIcon />
+            <span>Reserva rápida</span>
+          </div>
+          <div>
+            <CheckIcon />
+            <span>Horários em tempo real</span>
+          </div>
         </Group>
       </div>
 

@@ -8,7 +8,9 @@
 }
 
 @media (max-width: 1120px) {
-  .auth-page { grid-template-columns: minmax(440px, 0.9fr) minmax(500px, 1.1fr); }
+  .auth-page {
+    grid-template-columns: minmax(440px, 0.9fr) minmax(500px, 1.1fr);
+  }
 }
 
 @media (max-width: 860px) {

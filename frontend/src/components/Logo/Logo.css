@@ -24,8 +24,13 @@
   letter-spacing: -1px;
 }
 
-.app-brand__wordmark strong { font-weight: 800; }
-.app-brand__wordmark span { color: #edbd4e; font-weight: 500; }
+.app-brand__wordmark strong {
+  font-weight: 800;
+}
+.app-brand__wordmark span {
+  color: #edbd4e;
+  font-weight: 500;
+}
 
 .app-brand__wordmark small {
   display: block;
@@ -36,12 +41,28 @@
   letter-spacing: 3.1px;
 }
 
-.app-brand--compact { gap: 10px; }
-.app-brand--compact .app-brand__mark { width: 48px; height: 48px; }
-.app-brand--compact .app-brand__wordmark > div { font-size: 22px; letter-spacing: -0.7px; }
+.app-brand--compact {
+  gap: 10px;
+}
+.app-brand--compact .app-brand__mark {
+  width: 48px;
+  height: 48px;
+}
+.app-brand--compact .app-brand__wordmark > div {
+  font-size: 22px;
+  letter-spacing: -0.7px;
+}
 
 @media (max-width: 480px) {
-  .app-brand__mark { width: 45px; height: 45px; }
-  .app-brand__wordmark > div { font-size: 23px; }
-  .app-brand__wordmark small { font-size: 6.4px; letter-spacing: 2.5px; }
+  .app-brand__mark {
+    width: 45px;
+    height: 45px;
+  }
+  .app-brand__wordmark > div {
+    font-size: 23px;
+  }
+  .app-brand__wordmark small {
+    font-size: 6.4px;
+    letter-spacing: 2.5px;
+  }
 }

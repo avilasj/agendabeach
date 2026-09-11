@@ -35,10 +35,16 @@ export function RegisterForm({ onShowLogin }: RegisterFormProps) {
   if (submitted) {
     return (
       <div className="success-state" role="status">
-        <ThemeIcon size={62} radius="xl" color="green" variant="light"><CheckIcon size={30} /></ThemeIcon>
+        <ThemeIcon size={62} radius="xl" color="green" variant="light">
+          <CheckIcon size={30} />
+        </ThemeIcon>
         <Title order={3}>Conta criada!</Title>
-        <Text c="dimmed" ta="center">Agora é só entrar e escolher a melhor quadra e horário para você.</Text>
-        <Button color="gold" fullWidth onClick={onShowLogin}>Ir para o login</Button>
+        <Text c="dimmed" ta="center">
+          Agora é só entrar e escolher a melhor quadra e horário para você.
+        </Text>
+        <Button color="gold" fullWidth onClick={onShowLogin}>
+          Ir para o login
+        </Button>
       </div>
     )
   }
@@ -46,7 +52,11 @@ export function RegisterForm({ onShowLogin }: RegisterFormProps) {
   return (
     <form onSubmit={handleSubmit}>
       <Stack gap="sm">
-        {error && <Alert color="red" variant="light" role="alert">{error}</Alert>}
+        {error && (
+          <Alert color="red" variant="light" role="alert">
+            {error}
+          </Alert>
+        )}
 
         <TextInput
           label="Nome completo"
@@ -82,7 +92,19 @@ export function RegisterForm({ onShowLogin }: RegisterFormProps) {
           required
           color="gold"
           mt={4}
-          label={<Text span size="sm" c="dimmed">Li e aceito os <Anchor href="#" fw={600} c="brand.8">Termos de Uso</Anchor> e a <Anchor href="#" fw={600} c="brand.8">Política de Privacidade</Anchor>.</Text>}
+          label={
+            <Text span size="sm" c="dimmed">
+              Li e aceito os{' '}
+              <Anchor href="#" fw={600} c="brand.8">
+                Termos de Uso
+              </Anchor>{' '}
+              e a{' '}
+              <Anchor href="#" fw={600} c="brand.8">
+                Política de Privacidade
+              </Anchor>
+              .
+            </Text>
+          }
         />
         <Button type="submit" fullWidth size="md" color="gold" rightSection={<ArrowIcon />} mt="xs" loading={loading}>
           Criar minha conta
@@ -91,7 +113,9 @@ export function RegisterForm({ onShowLogin }: RegisterFormProps) {
 
       <Text ta="center" size="sm" c="dimmed" mt="xl">
         Já tem uma conta?{' '}
-        <Anchor component="button" type="button" fw={700} c="brand.8" onClick={onShowLogin}>Fazer login</Anchor>
+        <Anchor component="button" type="button" fw={700} c="brand.8" onClick={onShowLogin}>
+          Fazer login
+        </Anchor>
       </Text>
     </form>
   )

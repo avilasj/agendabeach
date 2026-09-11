@@ -10,7 +10,5 @@ const baseItems: NavigationItem[] = [
 
 /** O item de administração só aparece para quem o backend reconhece como ADMIN. */
 export function getNavigationItems(user: SessionUser | null): NavigationItem[] {
-  return canTryAdmin(user)
-    ? [...baseItems, { label: 'Administração', value: 'admin' }]
-    : baseItems
+  return canTryAdmin(user) ? [...baseItems, { label: 'Administração', value: 'admin' }] : baseItems
 }

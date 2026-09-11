@@ -41,23 +41,25 @@ export default function CancelBookingPage({ user, onNavigate, onLogout }: Cancel
   const [actionError, setActionError] = useState<string | null>(null)
   const [result, setResult] = useState<Cancellation | null>(null)
 
-  const loadData = useCallback(() => (
-    Promise.all([
-      scope === 'all' ? listBookings() : listUserBookings(user.id),
-      listCourts(),
-      scope === 'all' ? listUsers() : Promise.resolve<ApiUser[]>([]),
-    ])
-      .then(([loadedBookings, loadedCourts, loadedUsers]) => {
-        setBookings(loadedBookings)
-        setCourts(loadedCourts)
-        setUsers(loadedUsers)
-        setLoadError(null)
-      })
-      .catch((caught: unknown) => {
-        setLoadError(caught instanceof ApiError ? caught.message : 'Não foi possível carregar suas reservas.')
-      })
-      .finally(() => setLoading(false))
-  ), [scope, user.id])
+  const loadData = useCallback(
+    () =>
+      Promise.all([
+        scope === 'all' ? listBookings() : listUserBookings(user.id),
+        listCourts(),
+        scope === 'all' ? listUsers() : Promise.resolve<ApiUser[]>([]),
+      ])
+        .then(([loadedBookings, loadedCourts, loadedUsers]) => {
+          setBookings(loadedBookings)
+          setCourts(loadedCourts)
+          setUsers(loadedUsers)
+          setLoadError(null)
+        })
+        .catch((caught: unknown) => {
+          setLoadError(caught instanceof ApiError ? caught.message : 'Não foi possível carregar suas reservas.')
+        })
+        .finally(() => setLoading(false)),
+    [scope, user.id],
+  )
 
   useEffect(() => {
     loadData()
@@ -71,7 +73,10 @@ export default function CancelBookingPage({ user, onNavigate, onLogout }: Cancel
 
     return bookings
       .filter((booking) => checkCancellation(booking, now).allowed)
-      .sort((first, second) => parseLocalDateTime(first.startTime).getTime() - parseLocalDateTime(second.startTime).getTime())
+      .sort(
+        (first, second) =>
+          parseLocalDateTime(first.startTime).getTime() - parseLocalDateTime(second.startTime).getTime(),
+      )
   }, [bookings])
 
   const selected = useMemo(
@@ -177,14 +182,25 @@ export default function CancelBookingPage({ user, onNavigate, onLogout }: Cancel
             <strong>Reserva #{result.bookingId} cancelada.</strong>
             <span>
               Valor de estorno confirmado pelo sistema: <b>{formatCurrency(result.refundAmount)}</b>
-              {result.cancelledAt && ` · cancelada em ${formatShortDate(parseLocalDateTime(result.cancelledAt))} às ${formatTime(parseLocalDateTime(result.cancelledAt))}`}
+              {result.cancelledAt &&
+                ` · cancelada em ${formatShortDate(parseLocalDateTime(result.cancelledAt))} às ${formatTime(parseLocalDateTime(result.cancelledAt))}`}
             </span>
-            <button type="button" onClick={() => onNavigate('reservations')}>Ver minhas reservas</button>
+            <button type="button" onClick={() => onNavigate('reservations')}>
+              Ver minhas reservas
+            </button>
           </div>
         )}
 
-        {actionError && <div className="cancel-banner cancel-banner--error" role="alert">{actionError}</div>}
-        {loadError && <div className="cancel-banner cancel-banner--error" role="alert">{loadError}</div>}
+        {actionError && (
+          <div className="cancel-banner cancel-banner--error" role="alert">
+            {actionError}
+          </div>
+        )}
+        {loadError && (
+          <div className="cancel-banner cancel-banner--error" role="alert">
+            {loadError}
+          </div>
+        )}
 
         <div className="cancel-layout">
           <section className="cancel-list" aria-label="Reservas que podem ser canceladas">
@@ -197,48 +213,65 @@ export default function CancelBookingPage({ user, onNavigate, onLogout }: Cancel
 
             {!loading && cancellable.length === 0 && (
               <div className="cancel-empty">
-                <p>Nenhuma reserva pode ser cancelada agora. Só é possível cancelar partidas agendadas que ainda não começaram.</p>
-                <button type="button" onClick={() => onNavigate('booking')}>Agendar nova partida</button>
+                <p>
+                  Nenhuma reserva pode ser cancelada agora. Só é possível cancelar partidas agendadas que ainda não
+                  começaram.
+                </p>
+                <button type="button" onClick={() => onNavigate('booking')}>
+                  Agendar nova partida
+                </button>
               </div>
             )}
 
-            {!loading && cancellable.map((booking) => {
-              const start = parseLocalDateTime(booking.startTime)
-              const end = parseLocalDateTime(booking.endTime)
-              const itemPolicy = getRefundPolicy(start)
-              const owner = usersById.get(booking.userId)
+            {!loading &&
+              cancellable.map((booking) => {
+                const start = parseLocalDateTime(booking.startTime)
+                const end = parseLocalDateTime(booking.endTime)
+                const itemPolicy = getRefundPolicy(start)
+                const owner = usersById.get(booking.userId)
 
-              return (
-                <button
-                  key={booking.id}
-                  type="button"
-                  className={`cancel-item${booking.id === selectedId ? ' cancel-item--selected' : ''}`}
-                  onClick={() => selectBooking(booking.id)}
-                  aria-pressed={booking.id === selectedId}
-                >
-                  <span className="cancel-item__date">
-                    <small>{new Intl.DateTimeFormat('pt-BR', { month: 'short' }).format(start).replace('.', '').toUpperCase()}</small>
-                    <strong>{start.getDate()}</strong>
-                  </span>
+                return (
+                  <button
+                    key={booking.id}
+                    type="button"
+                    className={`cancel-item${booking.id === selectedId ? ' cancel-item--selected' : ''}`}
+                    onClick={() => selectBooking(booking.id)}
+                    aria-pressed={booking.id === selectedId}
+                  >
+                    <span className="cancel-item__date">
+                      <small>
+                        {new Intl.DateTimeFormat('pt-BR', { month: 'short' })
+                          .format(start)
+                          .replace('.', '')
+                          .toUpperCase()}
+                      </small>
+                      <strong>{start.getDate()}</strong>
+                    </span>
 
-                  <span className="cancel-item__info">
-                    <strong>{getCourtName(booking.courtId)}</strong>
-                    <small>{getCourtSurface(booking.courtId)}</small>
-                    <small>
-                      {formatTime(start)} às {formatTime(end)} · {formatDuration(getHoursBetween(start, end))}
-                    </small>
-                    {scope === 'all' && <small className="cancel-item__owner">{owner ? owner.name : `Usuário #${booking.userId}`}</small>}
-                  </span>
+                    <span className="cancel-item__info">
+                      <strong>{getCourtName(booking.courtId)}</strong>
+                      <small>{getCourtSurface(booking.courtId)}</small>
+                      <small>
+                        {formatTime(start)} às {formatTime(end)} · {formatDuration(getHoursBetween(start, end))}
+                      </small>
+                      {scope === 'all' && (
+                        <small className="cancel-item__owner">
+                          {owner ? owner.name : `Usuário #${booking.userId}`}
+                        </small>
+                      )}
+                    </span>
 
-                  <span className="cancel-item__aside">
-                    <b>{formatCurrency(booking.courtPrice)}</b>
-                    <i className={`cancel-tag cancel-tag--${itemPolicy.rate === 1 ? 'full' : itemPolicy.rate === 0.5 ? 'half' : 'none'}`}>
-                      {itemPolicy.label}
-                    </i>
-                  </span>
-                </button>
-              )
-            })}
+                    <span className="cancel-item__aside">
+                      <b>{formatCurrency(booking.courtPrice)}</b>
+                      <i
+                        className={`cancel-tag cancel-tag--${itemPolicy.rate === 1 ? 'full' : itemPolicy.rate === 0.5 ? 'half' : 'none'}`}
+                      >
+                        {itemPolicy.label}
+                      </i>
+                    </span>
+                  </button>
+                )
+              })}
           </section>
 
           <aside className="cancel-detail" aria-live="polite">
@@ -257,7 +290,9 @@ export default function CancelBookingPage({ user, onNavigate, onLogout }: Cancel
                   </div>
                   <div>
                     <dt>Horário</dt>
-                    <dd>{formatTime(selectedStart)} às {formatTime(selectedEnd)}</dd>
+                    <dd>
+                      {formatTime(selectedStart)} às {formatTime(selectedEnd)}
+                    </dd>
                   </div>
                   <div>
                     <dt>Duração</dt>
@@ -269,7 +304,9 @@ export default function CancelBookingPage({ user, onNavigate, onLogout }: Cancel
                   </div>
                 </dl>
 
-                <div className={`cancel-policy cancel-policy--${policy.rate === 1 ? 'full' : policy.rate === 0.5 ? 'half' : 'none'}`}>
+                <div
+                  className={`cancel-policy cancel-policy--${policy.rate === 1 ? 'full' : policy.rate === 0.5 ? 'half' : 'none'}`}
+                >
                   <strong>{policy.label}</strong>
                   <p>{policy.description}</p>
                 </div>
@@ -285,12 +322,18 @@ export default function CancelBookingPage({ user, onNavigate, onLogout }: Cancel
                   </li>
                 </ul>
 
-                <button type="button" className="cancel-submit" onClick={() => setConfirming(true)} disabled={submitting}>
+                <button
+                  type="button"
+                  className="cancel-submit"
+                  onClick={() => setConfirming(true)}
+                  disabled={submitting}
+                >
                   {submitting ? 'Cancelando…' : 'Cancelar esta reserva'}
                 </button>
 
                 <p className="cancel-note">
-                  O valor final do estorno é calculado pelo servidor no momento do cancelamento e pode variar se o horário se aproximar.
+                  O valor final do estorno é calculado pelo servidor no momento do cancelamento e pode variar se o
+                  horário se aproximar.
                 </p>
               </>
             ) : (
@@ -307,15 +350,17 @@ export default function CancelBookingPage({ user, onNavigate, onLogout }: Cancel
         <ConfirmDialog
           eyebrow="CANCELAR RESERVA"
           title={getCourtName(selected.courtId)}
-          description={(
+          description={
             <>
               <p>
                 Confirma o cancelamento da reserva <strong>AB-{String(selected.id).padStart(4, '0')}</strong> do dia{' '}
                 <strong>{formatShortDate(selectedStart)}</strong> às <strong>{formatTime(selectedStart)}</strong>?
               </p>
-              <p>{policy?.description} Estorno previsto: <strong>{formatCurrency(estimatedRefund)}</strong>.</p>
+              <p>
+                {policy?.description} Estorno previsto: <strong>{formatCurrency(estimatedRefund)}</strong>.
+              </p>
             </>
-          )}
+          }
           confirmLabel={submitting ? 'Cancelando…' : 'Sim, cancelar'}
           dismissLabel="Manter reserva"
           onConfirm={() => void confirmCancellation()}

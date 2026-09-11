@@ -83,18 +83,20 @@ export default function MyReservationsPage({ user, onNavigate, onLogout }: MyRes
   const [bookingToCancel, setBookingToCancel] = useState<Booking | null>(null)
   const [cancelling, setCancelling] = useState(false)
 
-  const loadData = useCallback(() => (
-    Promise.all([listUserBookings(user.id), listCourts()])
-      .then(([loadedBookings, loadedCourts]) => {
-        setBookings(loadedBookings)
-        setCourts(loadedCourts)
-        setLoadError(null)
-      })
-      .catch((caught: unknown) => {
-        setLoadError(caught instanceof ApiError ? caught.message : 'Não foi possível carregar suas reservas.')
-      })
-      .finally(() => setLoading(false))
-  ), [user.id])
+  const loadData = useCallback(
+    () =>
+      Promise.all([listUserBookings(user.id), listCourts()])
+        .then(([loadedBookings, loadedCourts]) => {
+          setBookings(loadedBookings)
+          setCourts(loadedCourts)
+          setLoadError(null)
+        })
+        .catch((caught: unknown) => {
+          setLoadError(caught instanceof ApiError ? caught.message : 'Não foi possível carregar suas reservas.')
+        })
+        .finally(() => setLoading(false)),
+    [user.id],
+  )
 
   useEffect(() => {
     loadData()
@@ -107,12 +109,15 @@ export default function MyReservationsPage({ user, onNavigate, onLogout }: MyRes
     return bookings.map((booking) => toReservation(booking, courtsById, now))
   }, [bookings, courtsById])
 
-  const counts = useMemo(() => ({
-    upcoming: reservations.filter((reservation) => reservation.status === 'upcoming').length,
-    completed: reservations.filter((reservation) => reservation.status === 'completed').length,
-    cancelled: reservations.filter((reservation) => reservation.status === 'cancelled').length,
-    all: reservations.length,
-  }), [reservations])
+  const counts = useMemo(
+    () => ({
+      upcoming: reservations.filter((reservation) => reservation.status === 'upcoming').length,
+      completed: reservations.filter((reservation) => reservation.status === 'completed').length,
+      cancelled: reservations.filter((reservation) => reservation.status === 'cancelled').length,
+      all: reservations.length,
+    }),
+    [reservations],
+  )
 
   const stats = useMemo(() => {
     const playedHours = reservations
@@ -126,15 +131,14 @@ export default function MyReservationsPage({ user, onNavigate, onLogout }: MyRes
   }, [reservations])
 
   const visibleReservations = useMemo(() => {
-    const filtered = activeFilter === 'all'
-      ? reservations
-      : reservations.filter((reservation) => reservation.status === activeFilter)
+    const filtered =
+      activeFilter === 'all' ? reservations : reservations.filter((reservation) => reservation.status === activeFilter)
 
-    return [...filtered].sort((first, second) => (
+    return [...filtered].sort((first, second) =>
       first.status === 'upcoming' && second.status === 'upcoming'
         ? first.date.getTime() - second.date.getTime()
-        : second.date.getTime() - first.date.getTime()
-    ))
+        : second.date.getTime() - first.date.getTime(),
+    )
   }, [reservations, activeFilter])
 
   function toggleDetails(id: string) {
@@ -192,8 +196,16 @@ export default function MyReservationsPage({ user, onNavigate, onLogout }: MyRes
           </button>
         </div>
 
-        {loadError && <div className="reservations-alert" role="alert">{loadError}</div>}
-        {actionError && <div className="reservations-alert" role="alert">{actionError}</div>}
+        {loadError && (
+          <div className="reservations-alert" role="alert">
+            {loadError}
+          </div>
+        )}
+        {actionError && (
+          <div className="reservations-alert" role="alert">
+            {actionError}
+          </div>
+        )}
 
         <div className="reservations-stats">
           <div className="reservations-stat">
@@ -229,7 +241,11 @@ export default function MyReservationsPage({ user, onNavigate, onLogout }: MyRes
           ))}
         </div>
 
-        {loading && <div className="reservations-empty"><p>Carregando suas reservas…</p></div>}
+        {loading && (
+          <div className="reservations-empty">
+            <p>Carregando suas reservas…</p>
+          </div>
+        )}
 
         {!loading && visibleReservations.length > 0 && (
           <div className="reservations-list">
@@ -249,7 +265,9 @@ export default function MyReservationsPage({ user, onNavigate, onLogout }: MyRes
         {!loading && visibleReservations.length === 0 && (
           <div className="reservations-empty">
             <p>{emptyMessages[activeFilter]}</p>
-            <button type="button" onClick={() => onNavigate('booking')}>Ir para o calendário</button>
+            <button type="button" onClick={() => onNavigate('booking')}>
+              Ir para o calendário
+            </button>
           </div>
         )}
       </main>
@@ -258,7 +276,7 @@ export default function MyReservationsPage({ user, onNavigate, onLogout }: MyRes
         <ConfirmDialog
           eyebrow="CANCELAR RESERVA"
           title={courtsById.get(bookingToCancel.courtId)?.name ?? `Quadra #${bookingToCancel.courtId}`}
-          description={(
+          description={
             <>
               <p>
                 Tem certeza que deseja cancelar a reserva{' '}
@@ -270,7 +288,7 @@ export default function MyReservationsPage({ user, onNavigate, onLogout }: MyRes
                 <strong>{formatCurrency(bookingToCancel.courtPrice * (cancelPolicy?.rate ?? 0))}</strong>.
               </p>
             </>
-          )}
+          }
           confirmLabel={cancelling ? 'Cancelando…' : 'Cancelar reserva'}
           dismissLabel="Manter reserva"
           onConfirm={() => void confirmCancel()}

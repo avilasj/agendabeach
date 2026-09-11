@@ -33,17 +33,19 @@ export default function BookingPage({ user, onNavigate, onLogout }: BookingPageP
   const [loadError, setLoadError] = useState<string | null>(null)
   const [created, setCreated] = useState<Booking | null>(null)
 
-  const loadData = useCallback(() => (
-    Promise.all([listCourts(), listBookings()])
-      .then(([loadedCourts, loadedBookings]) => {
-        setCourts(loadedCourts)
-        setBookings(loadedBookings)
-        setLoadError(null)
-      })
-      .catch((caught: unknown) => {
-        setLoadError(caught instanceof ApiError ? caught.message : 'Não foi possível carregar as quadras.')
-      })
-  ), [])
+  const loadData = useCallback(
+    () =>
+      Promise.all([listCourts(), listBookings()])
+        .then(([loadedCourts, loadedBookings]) => {
+          setCourts(loadedCourts)
+          setBookings(loadedBookings)
+          setLoadError(null)
+        })
+        .catch((caught: unknown) => {
+          setLoadError(caught instanceof ApiError ? caught.message : 'Não foi possível carregar as quadras.')
+        }),
+    [],
+  )
 
   useEffect(() => {
     loadData()
@@ -105,7 +107,11 @@ export default function BookingPage({ user, onNavigate, onLogout }: BookingPageP
           description="Toque em um dia disponível no calendário para escolher a quadra e o horário."
         />
 
-        {loadError && <div className="booking-alert booking-alert--error" role="alert">{loadError}</div>}
+        {loadError && (
+          <div className="booking-alert booking-alert--error" role="alert">
+            {loadError}
+          </div>
+        )}
 
         {created && createdStart && (
           <div className="booking-alert booking-alert--success" role="status">
@@ -115,7 +121,9 @@ export default function BookingPage({ user, onNavigate, onLogout }: BookingPageP
               {courts.find((court) => court.id === created.courtId)?.name ?? `Quadra #${created.courtId}`} ·{' '}
               {formatCurrency(created.courtPrice)}
             </span>
-            <button type="button" onClick={() => onNavigate('reservations')}>Ver minhas reservas</button>
+            <button type="button" onClick={() => onNavigate('reservations')}>
+              Ver minhas reservas
+            </button>
           </div>
         )}
 

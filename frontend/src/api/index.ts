@@ -1,13 +1,5 @@
 import { ApiError, request } from './http'
-import type {
-  ApiUser,
-  Booking,
-  Cancellation,
-  Court,
-  CourtPayload,
-  CreateBookingPayload,
-  ProfileType,
-} from './types'
+import type { ApiUser, Booking, Cancellation, Court, CourtPayload, CreateBookingPayload, ProfileType } from './types'
 
 export { ApiError }
 export type * from './types'
