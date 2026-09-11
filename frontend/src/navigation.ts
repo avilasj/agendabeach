@@ -1,8 +1,14 @@
 import type { NavigationItem } from './components'
+import type { SessionUser } from './session'
+import { canTryAdmin } from './session'
 
-export const navigationItems: NavigationItem[] = [
-  { label: 'Início', value: 'home' },
+const baseItems: NavigationItem[] = [
   { label: 'Agendar', value: 'booking' },
   { label: 'Minhas reservas', value: 'reservations' },
-  { label: 'Quadras', value: 'courts' },
+  { label: 'Cancelar reserva', value: 'cancel' },
 ]
+
+/** O item de administração só aparece para quem o backend reconhece como ADMIN. */
+export function getNavigationItems(user: SessionUser | null): NavigationItem[] {
+  return canTryAdmin(user) ? [...baseItems, { label: 'Administração', value: 'admin' }] : baseItems
+}

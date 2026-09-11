@@ -104,14 +104,8 @@ function ChevronIcon() {
   )
 }
 
-export function ReservationCard({
-  reservation,
-  expanded,
-  onToggleDetails,
-  onCancel,
-  onRebook,
-}: ReservationCardProps) {
-  const { courtTotal, equipmentTotal, serviceFee, total } = getReservationCosts(reservation)
+export function ReservationCard({ reservation, expanded, onToggleDetails, onCancel, onRebook }: ReservationCardProps) {
+  const { courtTotal, total } = getReservationCosts(reservation)
   const endTime = toTimeLabel(toMinutes(reservation.startTime) + reservation.hours * 60)
   const detailsId = `reservation-details-${reservation.id}`
 
@@ -135,14 +129,22 @@ export function ReservationCard({
           <p className="reservation-card__surface">{reservation.surface}</p>
 
           <ul className="reservation-card__meta">
-            <li><ClockIcon />{reservation.startTime} às {endTime}</li>
-            <li><CourtIcon />{getDurationLabel(reservation.hours)}</li>
+            <li>
+              <ClockIcon />
+              {reservation.startTime} às {endTime}
+            </li>
+            <li>
+              <CourtIcon />
+              {getDurationLabel(reservation.hours)}
+            </li>
           </ul>
 
           {reservation.equipments.length > 0 && (
             <ul className="reservation-card__equipments">
               {reservation.equipments.map(({ name, quantity }) => (
-                <li key={name}>{quantity}× {name}</li>
+                <li key={name}>
+                  {quantity}× {name}
+                </li>
               ))}
             </ul>
           )}
@@ -189,7 +191,9 @@ export function ReservationCard({
             </div>
             <div>
               <dt>Horário</dt>
-              <dd>{reservation.startTime} às {endTime}</dd>
+              <dd>
+                {reservation.startTime} às {endTime}
+              </dd>
             </div>
             <div>
               <dt>Código da reserva</dt>
@@ -198,11 +202,15 @@ export function ReservationCard({
             <div>
               <dt>Equipamentos</dt>
               <dd>
-                {reservation.equipments.length === 0
-                  ? <em>Nenhum</em>
-                  : reservation.equipments.map(({ name, quantity }) => (
-                    <span key={name}>{quantity}× {name}</span>
-                  ))}
+                {reservation.equipments.length === 0 ? (
+                  <em>Nenhum</em>
+                ) : (
+                  reservation.equipments.map(({ name, quantity }) => (
+                    <span key={name}>
+                      {quantity}× {name}
+                    </span>
+                  ))
+                )}
               </dd>
             </div>
           </dl>
@@ -211,14 +219,6 @@ export function ReservationCard({
             <li>
               <span>Quadra ({getDurationLabel(reservation.hours)})</span>
               <strong>{formatPrice(courtTotal)}</strong>
-            </li>
-            <li>
-              <span>Equipamentos</span>
-              <strong>{formatPrice(equipmentTotal)}</strong>
-            </li>
-            <li>
-              <span>Taxa de serviço (5%)</span>
-              <strong>{formatPrice(serviceFee)}</strong>
             </li>
             <li>
               <span>Total</span>

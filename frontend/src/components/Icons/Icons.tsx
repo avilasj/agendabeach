@@ -33,7 +33,13 @@ export function LockIcon({ size = 18, stroke = 1.8 }: IconProps) {
 export function ArrowIcon({ size = 18, stroke = 2 }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M5 12h14m-5-5 5 5-5 5" stroke="currentColor" strokeWidth={stroke} strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M5 12h14m-5-5 5 5-5 5"
+        stroke="currentColor"
+        strokeWidth={stroke}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   )
 }
@@ -41,7 +47,13 @@ export function ArrowIcon({ size = 18, stroke = 2 }: IconProps) {
 export function CheckIcon({ size = 16, stroke = 2.2 }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="m5 12 4 4L19 6" stroke="currentColor" strokeWidth={stroke} strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="m5 12 4 4L19 6"
+        stroke="currentColor"
+        strokeWidth={stroke}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   )
 }

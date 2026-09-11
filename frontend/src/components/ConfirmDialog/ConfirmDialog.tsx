@@ -54,14 +54,20 @@ export function ConfirmDialog({
             <span>{eyebrow}</span>
             <h2 id="confirm-dialog-title">{title}</h2>
           </div>
-          <button type="button" onClick={onClose} aria-label="Fechar"><CloseIcon /></button>
+          <button type="button" onClick={onClose} aria-label="Fechar">
+            <CloseIcon />
+          </button>
         </header>
 
         <div className="confirm-dialog__body">{description}</div>
 
         <footer className="confirm-dialog__footer">
-          <button type="button" className="confirm-dialog__dismiss" onClick={onClose}>{dismissLabel}</button>
-          <button type="button" className="confirm-dialog__confirm" onClick={onConfirm}>{confirmLabel}</button>
+          <button type="button" className="confirm-dialog__dismiss" onClick={onClose}>
+            {dismissLabel}
+          </button>
+          <button type="button" className="confirm-dialog__confirm" onClick={onConfirm}>
+            {confirmLabel}
+          </button>
         </footer>
       </div>
     </div>

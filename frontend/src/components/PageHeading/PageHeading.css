@@ -1,4 +1,6 @@
-.page-heading { margin-bottom: 34px; }
+.page-heading {
+  margin-bottom: 34px;
+}
 
 .page-heading__eyebrow {
   margin: 0 0 7px;
@@ -16,9 +18,17 @@
   letter-spacing: -1.1px;
 }
 
-.page-heading > p:last-child { margin: 5px 0 0; font-size: 16px; }
+.page-heading > p:last-child {
+  margin: 5px 0 0;
+  font-size: 16px;
+}
 
 @media (max-width: 590px) {
-  .page-heading { margin-bottom: 23px; }
-  .page-heading > p:last-child { font-size: 14px; line-height: 1.5; }
+  .page-heading {
+    margin-bottom: 23px;
+  }
+  .page-heading > p:last-child {
+    font-size: 14px;
+    line-height: 1.5;
+  }
 }

@@ -1,7 +1,8 @@
 import { useMemo } from 'react'
+import { toDateString } from '../../datetime'
 import './Calendar.css'
 
-type Availability = 'available' | 'limited' | 'full'
+export type Availability = 'available' | 'limited' | 'full'
 
 type CalendarDay = {
   date: Date
@@ -13,12 +14,15 @@ type CalendarDay = {
 type CalendarProps = {
   displayedMonth: Date
   selectedDate: Date | null
+  /** Ocupação real de cada dia (chave YYYY-MM-DD), calculada a partir das reservas do banco. */
+  availability: Record<string, Availability>
+  /** Primeiro dia que ainda pode ser reservado — normalmente hoje. */
+  minDate: Date
   onChangeMonth: (offset: number) => void
   onSelectDate: (date: Date) => void
 }
 
 const weekdays = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB']
-const firstBookableDate = new Date(2026, 5, 14)
 
 const availabilityLabels: Record<Availability, string> = {
   available: 'Vários',
@@ -26,33 +30,25 @@ const availabilityLabels: Record<Availability, string> = {
   full: 'Lotado',
 }
 
-function getAvailability(date: Date): Pick<CalendarDay, 'status' | 'disabled'> {
-  if (date < firstBookableDate) return { disabled: true }
-
-  const day = date.getDate()
-  const month = date.getMonth()
-  const year = date.getFullYear()
-
-  if (year === 2026 && month === 5) {
-    if ([18, 23].includes(day)) return { status: 'full', disabled: true }
-    if ([16, 20, 25, 29].includes(day)) return { status: 'limited', disabled: false }
-    return { status: 'available', disabled: false }
-  }
-
-  const availabilitySeed = day * 7 + month * 11 + year
-  if (availabilitySeed % 13 === 0) return { status: 'full', disabled: true }
-  if (availabilitySeed % 5 === 0) return { status: 'limited', disabled: false }
-  return { status: 'available', disabled: false }
+function startOfDay(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate())
 }
 
-function createCalendarDays(month: Date): CalendarDay[] {
+function createCalendarDays(month: Date, availability: Record<string, Availability>, minDate: Date): CalendarDay[] {
   const year = month.getFullYear()
   const monthIndex = month.getMonth()
   const totalDays = new Date(year, monthIndex + 1, 0).getDate()
+  const firstBookableDate = startOfDay(minDate)
 
   return Array.from({ length: totalDays }, (_, index) => {
     const date = new Date(year, monthIndex, index + 1)
-    return { date, day: index + 1, ...getAvailability(date) }
+
+    if (date < firstBookableDate) {
+      return { date, day: index + 1, disabled: true }
+    }
+
+    const status = availability[toDateString(date)] ?? 'available'
+    return { date, day: index + 1, status, disabled: status === 'full' }
   })
 }
 
@@ -70,9 +66,11 @@ function getFullDateLabel(date: Date) {
 }
 
 function isSameDate(first: Date | null, second: Date) {
-  return first?.getFullYear() === second.getFullYear()
-    && first.getMonth() === second.getMonth()
-    && first.getDate() === second.getDate()
+  return (
+    first?.getFullYear() === second.getFullYear() &&
+    first.getMonth() === second.getMonth() &&
+    first.getDate() === second.getDate()
+  )
 }
 
 function ChevronIcon({ direction }: { direction: 'left' | 'right' }) {
@@ -83,8 +81,18 @@ function ChevronIcon({ direction }: { direction: 'left' | 'right' }) {
   )
 }
 
-export function Calendar({ displayedMonth, selectedDate, onChangeMonth, onSelectDate }: CalendarProps) {
-  const calendarDays = useMemo(() => createCalendarDays(displayedMonth), [displayedMonth])
+export function Calendar({
+  displayedMonth,
+  selectedDate,
+  availability,
+  minDate,
+  onChangeMonth,
+  onSelectDate,
+}: CalendarProps) {
+  const calendarDays = useMemo(
+    () => createCalendarDays(displayedMonth, availability, minDate),
+    [displayedMonth, availability, minDate],
+  )
   const leadingEmptyDays = displayedMonth.getDay()
 
   return (
@@ -107,7 +115,9 @@ export function Calendar({ displayedMonth, selectedDate, onChangeMonth, onSelect
       </div>
 
       <div className="calendar-grid calendar-grid--weekdays" aria-hidden="true">
-        {weekdays.map((weekday) => <span key={weekday}>{weekday}</span>)}
+        {weekdays.map((weekday) => (
+          <span key={weekday}>{weekday}</span>
+        ))}
       </div>
 
       <div className="calendar-grid calendar-grid--days">
@@ -136,9 +146,18 @@ export function Calendar({ displayedMonth, selectedDate, onChangeMonth, onSelect
       </div>
 
       <div className="calendar-legend" aria-label="Legenda de disponibilidade">
-        <span><i className="legend-dot legend-dot--available" />Vários horários</span>
-        <span><i className="legend-dot legend-dot--limited" />Poucos horários</span>
-        <span><i className="legend-dot legend-dot--full" />Lotado</span>
+        <span>
+          <i className="legend-dot legend-dot--available" />
+          Vários horários
+        </span>
+        <span>
+          <i className="legend-dot legend-dot--limited" />
+          Poucos horários
+        </span>
+        <span>
+          <i className="legend-dot legend-dot--full" />
+          Lotado
+        </span>
       </div>
     </section>
   )
