@@ -2,6 +2,8 @@ package com.users.entity;
 
 import jakarta.persistence.*;
 import com.users.enums.ProfileType;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "users")
@@ -20,9 +22,10 @@ public class User {
     @Column(nullable = false)
     private String password;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private ProfileType profile;
+	@Enumerated(EnumType.STRING)
+	@JdbcTypeCode(SqlTypes.NAMED_ENUM)
+	@Column(nullable = false)
+	private ProfileType profile;
 
     public Long getId() {
         return id;
