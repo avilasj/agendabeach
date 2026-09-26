@@ -32,12 +32,20 @@ services:
         condition: service_healthy
 
   # Só sobe sob demanda (perfil "test") — ver seção 2
-  backend-tests:
+  backend-unit-tests:
     build:
       context: ./backend
       target: build
-    container_name: agendabeach-backend-tests
-    entrypoint: ["mvn", "-B", "clean", "test"]
+    container_name: agendabeach-backend-unit-tests
+    entrypoint: ["mvn", "-B", "-Dtest=UserServiceTest,BookingServiceTest", "test"]
+    profiles: ["test"]
+
+  backend-integration-tests:
+    build:
+      context: ./backend
+      target: build
+    container_name: agendabeach-backend-integration-tests
+    entrypoint: ["mvn", "-B", "-Dtest=AgendaBeachApplicationTests", "test"]
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/agendabeach
       SPRING_DATASOURCE_USERNAME: postgres
