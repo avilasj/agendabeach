@@ -19,6 +19,7 @@ RUN chown -R nginx:nginx /var/cache/nginx \
     && sed -i 's@^pid .*;@pid /tmp/nginx.pid;@' /etc/nginx/nginx.conf
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY --chmod=644 nginx.conf /etc/nginx/conf.d/default.conf
+RUN chmod -R a+rX /usr/share/nginx/html
 
 USER nginx:nginx
 
