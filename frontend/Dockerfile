@@ -6,6 +6,9 @@ COPY package.json package-lock.json ./
 RUN npm ci --ignore-scripts
 
 COPY . .
+# Normalize Windows checkouts inside the image before validating formatting.
+RUN find src -type f \( -name '*.ts' -o -name '*.tsx' -o -name '*.css' \) \
+    -exec sed -i 's/\r$//' {} +
 RUN npm run lint
 RUN ./node_modules/.bin/prettier --check "src/**/*.{ts,tsx,css}"
 RUN npm run build
