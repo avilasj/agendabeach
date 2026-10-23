@@ -6,6 +6,9 @@ COPY package.json package-lock.json ./
 RUN npm ci --ignore-scripts
 
 COPY . .
+# Normalize Windows checkouts inside the image before validating formatting.
+RUN find src -type f \( -name '*.ts' -o -name '*.tsx' -o -name '*.css' \) \
+    -exec sed -i 's/\r$//' {} +
 RUN npm run lint
 RUN ./node_modules/.bin/prettier --check "src/**/*.{ts,tsx,css}"
 RUN npm run build
@@ -16,6 +19,7 @@ RUN chown -R nginx:nginx /var/cache/nginx \
     && sed -i 's@^pid .*;@pid /tmp/nginx.pid;@' /etc/nginx/nginx.conf
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY --chmod=644 nginx.conf /etc/nginx/conf.d/default.conf
+RUN chmod -R a+rX /usr/share/nginx/html
 
 USER nginx:nginx
 
