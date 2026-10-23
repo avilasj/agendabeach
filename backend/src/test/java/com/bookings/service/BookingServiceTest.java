@@ -1,5 +1,9 @@
 package com.bookings.service;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
 import com.bookings.dto.BookingResponseDTO;
 import com.bookings.dto.CancellationResponseDTO;
 import com.bookings.dto.CreateBookingDTO;
@@ -7,215 +11,261 @@ import com.bookings.entity.Booking;
 import com.bookings.entity.Court;
 import com.bookings.enums.BookingStatus;
 import com.bookings.enums.CourtStatus;
+import com.bookings.enums.CourtType;
 import com.bookings.repository.BookingRepository;
 import com.bookings.repository.CourtRepository;
 import com.users.entity.User;
 import com.users.repository.UserRepository;
+import com.users.service.AuthService;
+
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.server.ResponseStatusException;
 
-import java.lang.reflect.RecordComponent;
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class BookingServiceTest {
+    private static final LocalDateTime NOW = LocalDateTime.of(2026, 10, 21, 6, 0);
+    private static final LocalDateTime START = LocalDateTime.of(2026, 10, 23, 10, 0);
 
-    @Mock
-    private BookingRepository bookingRepository;
-    @Mock
-    private UserRepository userRepository;
-    @Mock
-    private CourtRepository courtRepository;
+    @Mock private BookingRepository bookingRepository;
+    @Mock private UserRepository userRepository;
+    @Mock private CourtRepository courtRepository;
+    @Mock private PricingService pricingService;
+    @Mock private AuthService authService;
 
-    @InjectMocks
     private BookingService bookingService;
+
+    @BeforeEach
+    void setup() {
+        bookingService =
+                new BookingService(
+                        bookingRepository,
+                        userRepository,
+                        courtRepository,
+                        pricingService,
+                        authService,
+                        Clock.fixed(NOW.toInstant(ZoneOffset.UTC), ZoneOffset.UTC));
+    }
 
     @Test
     void create_ShouldPersistAndReturnResponse() {
-        User user = new User();
-        ReflectionTestUtils.setField(user, "id", 1L);
-        Court court = new Court();
-        ReflectionTestUtils.setField(court, "id", 2L);
-        court.setStatus(CourtStatus.ACTIVE);
+        prepareUser();
+        when(courtRepository.lockById(2L)).thenReturn(Optional.of(activeCourt()));
+        when(pricingService.price(START)).thenReturn(new BigDecimal("60.00"));
+        when(bookingRepository.saveAndFlush(any(Booking.class)))
+                .thenAnswer(
+                        invocation -> {
+                            Booking booking = invocation.getArgument(0);
+                            ReflectionTestUtils.setField(booking, "id", 10L);
+                            return booking;
+                        });
 
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-        when(courtRepository.findById(2L)).thenReturn(Optional.of(court));
-        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> {
-            Booking b = inv.getArgument(0);
-            try {
-                var idField = Booking.class.getDeclaredField("id");
-                idField.setAccessible(true);
-                idField.set(b, 10L);
-            } catch (Exception ignored) {}
-            return b;
-        });
+        BookingResponseDTO response =
+                bookingService.create(
+                        new CreateBookingDTO(1L, 2L, START, START.plusHours(1), false));
 
-        var start = LocalDateTime.now().plusHours(1);
-        var end = start.plusHours(1);
-        CreateBookingDTO dto = new CreateBookingDTO(1L, 2L, start, end);
-
-        BookingResponseDTO res = bookingService.create(dto);
-
-        assertNotNull(res);
-        assertEquals(10L, res.id());
-        assertEquals(1L, res.userId());
-        assertEquals(2L, res.courtId());
-        assertEquals(start, res.startTime());
-        assertEquals(end, res.endTime());
-        assertNotNull(res.status());
+        assertEquals(10L, response.id());
+        assertEquals(1L, response.userId());
+        assertEquals(2L, response.courtId());
+        assertEquals(START, response.startTime());
+        assertEquals(START.plusHours(1), response.endTime());
+        assertEquals(new BigDecimal("60.00"), response.courtPrice());
+        assertEquals(BookingStatus.SCHEDULED, response.status());
     }
 
     @Test
     void create_ShouldThrow_WhenEndBeforeStart() {
-        User user = new User();
-        Court court = new Court();
-        court.setStatus(CourtStatus.ACTIVE);
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-        when(courtRepository.findById(2L)).thenReturn(Optional.of(court));
+        prepareUser();
 
-        var start = LocalDateTime.now().plusHours(2);
-        var end = start.minusMinutes(30);
-        CreateBookingDTO dto = new CreateBookingDTO(1L, 2L, start, end);
+        IllegalArgumentException error =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () ->
+                                bookingService.create(
+                                        new CreateBookingDTO(
+                                                1L, 2L, START, START.minusMinutes(30), false)));
 
-        RuntimeException ex = assertThrows(RuntimeException.class, () -> bookingService.create(dto));
-        assertTrue(ex.getMessage().toLowerCase().contains("end time"));
+        assertTrue(error.getMessage().toLowerCase().contains("end time"));
+        verifyNoInteractions(courtRepository, pricingService);
+        verify(bookingRepository, never()).saveAndFlush(any());
     }
 
     @Test
     void create_ShouldThrow_WhenCourtInactive() {
-        User user = new User();
-        Court court = new Court();
+        prepareUser();
+        Court court = activeCourt();
         court.setStatus(CourtStatus.INACTIVE);
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-        when(courtRepository.findById(2L)).thenReturn(Optional.of(court));
+        when(courtRepository.lockById(2L)).thenReturn(Optional.of(court));
 
-        var start = LocalDateTime.now().plusHours(1);
-        var end = start.plusHours(1);
-        CreateBookingDTO dto = new CreateBookingDTO(1L, 2L, start, end);
+        IllegalStateException error =
+                assertThrows(
+                        IllegalStateException.class,
+                        () ->
+                                bookingService.create(
+                                        new CreateBookingDTO(
+                                                1L, 2L, START, START.plusHours(1), false)));
 
-        RuntimeException ex = assertThrows(RuntimeException.class, () -> bookingService.create(dto));
-        assertTrue(ex.getMessage().toLowerCase().contains("inactive"));
+        assertEquals("Court is inactive", error.getMessage());
+        verifyNoInteractions(pricingService);
+        verify(bookingRepository, never()).saveAndFlush(any());
     }
-
-    // ---------------- testes adicionados ----------------
 
     @Test
     void create_ShouldThrow_WhenUserNotFound() {
-        when(userRepository.findById(1L)).thenReturn(Optional.empty());
+        when(authService.currentId()).thenReturn(1L);
+        when(userRepository.lockById(1L)).thenReturn(Optional.empty());
 
-        var start = LocalDateTime.now().plusHours(1);
-        CreateBookingDTO dto = new CreateBookingDTO(1L, 2L, start, start.plusHours(1));
+        ResponseStatusException error =
+                assertThrows(
+                        ResponseStatusException.class,
+                        () ->
+                                bookingService.create(
+                                        new CreateBookingDTO(
+                                                1L, 2L, START, START.plusHours(1), false)));
 
-        RuntimeException ex = assertThrows(RuntimeException.class, () -> bookingService.create(dto));
-        assertEquals("User not found", ex.getMessage());
+        assertEquals(HttpStatus.NOT_FOUND, error.getStatusCode());
+        assertEquals("User not found", error.getReason());
+        verifyNoInteractions(courtRepository, pricingService);
     }
 
     @Test
     void create_ShouldThrow_WhenCourtNotFound() {
-        when(userRepository.findById(1L)).thenReturn(Optional.of(new User()));
-        when(courtRepository.findById(2L)).thenReturn(Optional.empty());
+        prepareUser();
+        when(courtRepository.lockById(2L)).thenReturn(Optional.empty());
 
-        var start = LocalDateTime.now().plusHours(1);
-        CreateBookingDTO dto = new CreateBookingDTO(1L, 2L, start, start.plusHours(1));
+        ResponseStatusException error =
+                assertThrows(
+                        ResponseStatusException.class,
+                        () ->
+                                bookingService.create(
+                                        new CreateBookingDTO(
+                                                1L, 2L, START, START.plusHours(1), false)));
 
-        RuntimeException ex = assertThrows(RuntimeException.class, () -> bookingService.create(dto));
-        assertEquals("Court not found", ex.getMessage());
+        assertEquals(HttpStatus.NOT_FOUND, error.getStatusCode());
+        assertEquals("Court not found", error.getReason());
+        verifyNoInteractions(pricingService);
     }
 
     @Test
     void create_ShouldApplyPeakPrice_ForOpenCourt() {
-        Court court = new Court();
-        court.setStatus(CourtStatus.ACTIVE);
-        when(userRepository.findById(1L)).thenReturn(Optional.of(new User()));
-        when(courtRepository.findById(2L)).thenReturn(Optional.of(court));
-        when(bookingRepository.save(any(Booking.class))).thenAnswer(inv -> inv.getArgument(0));
+        prepareUser();
+        when(courtRepository.lockById(2L)).thenReturn(Optional.of(activeCourt()));
+        LocalDateTime start = START.withHour(18);
+        when(pricingService.price(start)).thenReturn(new BigDecimal("100.00"));
+        when(bookingRepository.saveAndFlush(any(Booking.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
-        // 18h-19h e horario de pico: 100 * 1.20 = 120.00 (data fixa para nao depender do relogio)
-        var start = LocalDateTime.of(2030, 1, 15, 18, 0);
-        bookingService.create(new CreateBookingDTO(1L, 2L, start, start.plusHours(1)));
+        bookingService.create(new CreateBookingDTO(1L, 2L, start, start.plusHours(1), false));
 
         ArgumentCaptor<Booking> captor = ArgumentCaptor.forClass(Booking.class);
-        verify(bookingRepository).save(captor.capture());
-        assertEquals(0, new BigDecimal("120.00").compareTo(captor.getValue().getCourtPrice()));
+        verify(bookingRepository).saveAndFlush(captor.capture());
+        assertEquals(new BigDecimal("100.00"), captor.getValue().getCourtPrice());
+        verify(pricingService).price(start);
     }
 
     @Test
     void cancel_ShouldRefundFully_WhenMoreThan24HoursBefore() {
         Booking booking = scheduledBookingStartingIn(30);
-        when(bookingRepository.findById(5L)).thenReturn(Optional.of(booking));
+        prepareCancellation(booking);
 
-        CancellationResponseDTO res = bookingService.cancel(5L);
+        CancellationResponseDTO response = bookingService.cancel(5L);
 
-        assertEquals(0, new BigDecimal("100.00").compareTo(refundOf(res)));
+        assertEquals(new BigDecimal("100.00"), response.refundAmount());
+        assertEquals(0, response.creditAmount().signum());
         assertEquals(BookingStatus.CANCELLED, booking.getStatus());
-        verify(bookingRepository).save(booking);
+        assertEquals(NOW, booking.getCancelledAt());
+        verify(authService).ensureOwner(1L);
+        verify(bookingRepository).saveAndFlush(booking);
     }
 
     @Test
-    void cancel_ShouldNotRefund_WhenLessThan12HoursBefore() {
+    void cancel_ShouldGrantCreditWithoutCashRefund_WhenThreeHoursBefore() {
         Booking booking = scheduledBookingStartingIn(3);
-        when(bookingRepository.findById(5L)).thenReturn(Optional.of(booking));
+        prepareCancellation(booking);
 
-        CancellationResponseDTO res = bookingService.cancel(5L);
+        CancellationResponseDTO response = bookingService.cancel(5L);
 
-        assertEquals(0, BigDecimal.ZERO.compareTo(refundOf(res)));
+        assertEquals(0, response.refundAmount().signum());
+        assertEquals(new BigDecimal("50.00"), response.creditAmount());
+        assertEquals(new BigDecimal("50.00"), booking.getUser().getCreditBalance());
         assertEquals(BookingStatus.CANCELLED, booking.getStatus());
+        verify(bookingRepository).saveAndFlush(booking);
     }
 
     @Test
     void cancel_ShouldThrow_WhenAlreadyCancelled() {
         Booking booking = scheduledBookingStartingIn(30);
         booking.setStatus(BookingStatus.CANCELLED);
-        when(bookingRepository.findById(5L)).thenReturn(Optional.of(booking));
+        prepareCancellation(booking);
 
-        RuntimeException ex = assertThrows(RuntimeException.class, () -> bookingService.cancel(5L));
-        assertEquals("Booking already cancelled", ex.getMessage());
-        verify(bookingRepository, never()).save(any());
+        IllegalStateException error =
+                assertThrows(IllegalStateException.class, () -> bookingService.cancel(5L));
+
+        assertEquals("Only future scheduled bookings can change", error.getMessage());
+        assertEquals(0, booking.getUser().getCreditBalance().signum());
+        verify(bookingRepository, never()).saveAndFlush(any());
     }
 
     @Test
     void delete_ShouldThrow_WhenBookingNotFound() {
-        when(bookingRepository.existsById(99L)).thenReturn(false);
+        when(bookingRepository.ownerId(99L)).thenReturn(Optional.empty());
 
-        RuntimeException ex = assertThrows(RuntimeException.class, () -> bookingService.delete(99L));
-        assertEquals("Booking not found", ex.getMessage());
+        ResponseStatusException error =
+                assertThrows(ResponseStatusException.class, () -> bookingService.delete(99L));
+
+        assertEquals(HttpStatus.NOT_FOUND, error.getStatusCode());
+        assertEquals("Booking not found", error.getReason());
         verify(bookingRepository, never()).deleteById(any());
+        verify(bookingRepository, never()).saveAndFlush(any());
+        verifyNoInteractions(userRepository);
     }
 
+    private void prepareUser() {
+        when(authService.currentId()).thenReturn(1L);
+        when(userRepository.lockById(1L)).thenReturn(Optional.of(user()));
+    }
+
+    private User user() {
+        User user = new User();
+        ReflectionTestUtils.setField(user, "id", 1L);
+        user.setCpf("52998224725");
+        return user;
+    }
+
+    private Court activeCourt() {
+        Court court = new Court();
+        ReflectionTestUtils.setField(court, "id", 2L);
+        court.setStatus(CourtStatus.ACTIVE);
+        court.setType(CourtType.OPEN);
+        return court;
+    }
 
     private Booking scheduledBookingStartingIn(long hours) {
-        LocalDateTime start = LocalDateTime.now().plusHours(hours).plusMinutes(5);
-        Booking b = new Booking();
-        b.setStartTime(start);
-        b.setEndTime(start.plusHours(1));
-        b.setCourtPrice(new BigDecimal("100.00"));
-        b.setStatus(BookingStatus.SCHEDULED);
-        return b;
+        Booking booking = new Booking();
+        ReflectionTestUtils.setField(booking, "id", 5L);
+        booking.setUser(user());
+        booking.setStartTime(NOW.plusHours(hours));
+        booking.setEndTime(booking.getStartTime().plusHours(1));
+        booking.setCourtPrice(new BigDecimal("100.00"));
+        booking.setStatus(BookingStatus.SCHEDULED);
+        return booking;
     }
 
-    private static BigDecimal refundOf(CancellationResponseDTO dto) {
-        try {
-            for (RecordComponent rc : dto.getClass().getRecordComponents()) {
-                if (rc.getType() == BigDecimal.class) {
-                    return (BigDecimal) rc.getAccessor().invoke(dto);
-                }
-            }
-        } catch (ReflectiveOperationException e) {
-            throw new IllegalStateException(e);
-        }
-        throw new IllegalStateException("Nenhum BigDecimal em CancellationResponseDTO");
+    private void prepareCancellation(Booking booking) {
+        when(bookingRepository.ownerId(5L)).thenReturn(Optional.of(1L));
+        when(userRepository.lockById(1L)).thenReturn(Optional.of(booking.getUser()));
+        when(bookingRepository.lockById(5L)).thenReturn(Optional.of(booking));
     }
 }
