@@ -12,6 +12,8 @@ bash mvnw spring-boot:run
 
 O healthcheck é `GET /actuator/health`. A documentação interativa fica em `/swagger-ui/index.html` e o contrato OpenAPI em `/v3/api-docs`. Esses três endpoints não exigem autenticação. Também é possível executar somente banco e API com `docker compose up -d --build db backend` na raiz.
 
+A imagem de produção executa a API como `app:app` (UID/GID 10001), sem privilégios de root. O JAR permanece de propriedade de root, disponível apenas para leitura pelo usuário da aplicação. A porta 8080 e o healthcheck permanecem iguais.
+
 ## Migração de banco
 
 Flyway executa as migrações em `src/main/resources/db/migration/` antes da validação Hibernate. Bancos vazios recebem V1 e V2. Bancos existentes criados pelo `db/init.sql` são reconhecidos como V1 e recebem V2, sem recriar tabelas nem apagar reservas. O usuário do banco precisa poder criar extensão `btree_gist`, tabelas e índices, ou a extensão deve ser provisionada antes pelo administrador.
