@@ -11,6 +11,7 @@ RUN find src -type f \( -name '*.ts' -o -name '*.tsx' -o -name '*.css' \) \
     -exec sed -i 's/\r$//' {} +
 RUN npm run lint
 RUN ./node_modules/.bin/prettier --check "src/**/*.{ts,tsx,css}"
+RUN npm test
 RUN npm run build
 
 # ---------- Etapa 2: runtime (Nginx) ----------
