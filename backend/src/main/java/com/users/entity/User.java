@@ -1,7 +1,9 @@
 package com.users.entity;
 
-import jakarta.persistence.*;
 import com.users.enums.ProfileType;
+
+import jakarta.persistence.*;
+
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -22,10 +24,32 @@ public class User {
     @Column(nullable = false)
     private String password;
 
-	@Enumerated(EnumType.STRING)
-	@JdbcTypeCode(SqlTypes.NAMED_ENUM)
-	@Column(nullable = false)
-	private ProfileType profile;
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(nullable = false, columnDefinition = "profile_type")
+    private ProfileType profile;
+
+    @Column(unique = true, length = 11)
+    private String cpf;
+
+    @Column(name = "credit_balance", nullable = false)
+    private java.math.BigDecimal creditBalance = java.math.BigDecimal.ZERO;
+
+    public String getCpf() {
+        return cpf;
+    }
+
+    public void setCpf(String cpf) {
+        this.cpf = cpf;
+    }
+
+    public java.math.BigDecimal getCreditBalance() {
+        return creditBalance;
+    }
+
+    public void setCreditBalance(java.math.BigDecimal balance) {
+        this.creditBalance = balance;
+    }
 
     public Long getId() {
         return id;

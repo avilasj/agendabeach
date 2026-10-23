@@ -3,18 +3,22 @@ FROM node:20-alpine AS build
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm ci --ignore-scripts
 
 COPY . .
 RUN npm run lint
-RUN npx prettier --check "src/**/*.{ts,tsx,css}"
+RUN ./node_modules/.bin/prettier --check "src/**/*.{ts,tsx,css}"
 RUN npm run build
 
 # ---------- Etapa 2: runtime (Nginx) ----------
 FROM nginx:alpine
+RUN chown -R nginx:nginx /var/cache/nginx \
+    && sed -i 's@^pid .*;@pid /tmp/nginx.pid;@' /etc/nginx/nginx.conf
 COPY --from=build /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --chmod=644 nginx.conf /etc/nginx/conf.d/default.conf
+
+USER nginx:nginx
 
 EXPOSE 80
 HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=5 \
-	CMD wget -qO- http://localhost/ || exit 1
+	CMD wget -Y off -qO- http://127.0.0.1/ || exit 1
