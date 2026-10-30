@@ -44,7 +44,7 @@ Envie `Authorization: Bearer <accessToken>` nas requisições protegidas. Os tok
 
 O proprietário e o administrador podem consultar/alterar o usuário e suas reservas. Listagem geral de usuários, reservas e buscas que expõem usuários são restritas ao administrador. Alterações em quadras, tarifas e feriados também exigem ADMIN. A criação de administradores permanece uma operação controlada da instalação, sem endpoint público de promoção.
 
-**Compatibilidade:** o frontend antigo usa `X-User-Id`, não envia CPF e pode gerar durações e preços incompatíveis. Ele precisará de uma tarefa posterior de integração para usar os novos contratos. Seu código permanece intacto nesta entrega. Não há fallback inseguro para manter o header antigo funcionando. O proxy do frontend atual também não encaminha `/pricing`, `/v3/api-docs` ou `/swagger-ui`; esses recursos estão disponíveis diretamente na API.
+**Compatibilidade:** o frontend integra cadastro com CPF e login Bearer, usa o perfil retornado pela API e revoga o token ao sair. Sessões antigas sem token exigem novo login. Os fluxos de grade, preços e reservas ainda precisam de integração com os novos contratos, pois a interface pode gerar durações e valores incompatíveis e consultar listagens administrativas. Não há autenticação por `X-User-Id`. O proxy do frontend também não encaminha `/pricing`, `/v3/api-docs` ou `/swagger-ui`; esses recursos estão disponíveis diretamente na API.
 
 ## Reservas e disponibilidade
 
@@ -111,4 +111,6 @@ bash mvnw -Dtest=UserServiceTest,BookingServiceTest,BookingRulesTest,PricingServ
 
 A integração usa o PostgreSQL configurado nas variáveis `SPRING_DATASOURCE_*`, com defaults locais de desenvolvimento. Ela cria e limpa **somente o schema reservado `agendabeach_backend_test`** e um schema temporário `legacy_upgrade_test`; use banco de desenvolvimento/testes com permissão de criação de schemas. Não execute essa suíte contra produção. As tabelas normais de desenvolvimento no schema `public` ficam preservadas.
 
-A suíte cobre validação de CPF, horários e duração, preços, feriados, limites exatos de 24h/2h, reuso de créditos, permissões, revogação/expiração de token, atualização, migração de instalação antiga, concorrência de reserva/quota/cancelamento e atualização de perfil sem perda de créditos, além da restrição de exclusão do PostgreSQL. A consulta de disponibilidade é verificada abaixo de dois segundos em cinco requisições locais; isso é uma verificação funcional de desempenho, não uma garantia sob carga de produção. Não foram alterados nem executados testes do frontend.
+A suíte cobre validação de CPF, horários e duração, preços, feriados, limites exatos de 24h/2h, reuso de créditos, permissões, revogação/expiração de token, atualização, migração de instalação antiga, concorrência de reserva/quota/cancelamento e atualização de perfil sem perda de créditos, além da restrição de exclusão do PostgreSQL. A consulta de disponibilidade é verificada abaixo de dois segundos em cinco requisições locais; isso é uma verificação funcional de desempenho, não uma garantia sob carga de produção.
+
+Em `frontend/`, `npm test` executa os testes de CPF, contratos de cadastro/login, sessão e envio de tokens. O build Docker do frontend também executa essa suíte, além de lint, Prettier e compilação.
